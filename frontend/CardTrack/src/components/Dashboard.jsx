@@ -1,41 +1,26 @@
-import React, { useState } from 'react';
-import Sidebar from './Sidebar';
-import Profile from './Profile';
-import CreateBoard from './CreateBoard';
-import Settings from './Settings';
+// src/components/Dashboard.jsx
 
-const MyBoards = () => (
-    <div style={{ padding: '20px' }}>
-        <h2>Tus Tableros</h2>
-        <p>Aquí se mostrará una tabla con los tableros kanban del usuario.</p>
-    </div>
-);
+import React from 'react';
+import { useAuth } from '../useAuth.js';
 
 const Dashboard = () => {
-    const [activeView, setActiveView] = useState('profile');
-
-    const renderContent = () => {
-        switch (activeView) {
-            case 'profile':
-                return <Profile />;
-            case 'createBoard':
-                return <CreateBoard />;
-            case 'myBoards':
-                return <MyBoards />;
-            case 'settings':
-                return <Settings />;
-            default:
-                return <Profile />;
-        }
-    };
+    const { user, logout } = useAuth();
+    
+    // Aquí es donde iría la lógica del dashboard real (sidebar, rutas internas, etc.)
 
     return (
-        <div className="dashboard-container">
-            <Sidebar activeView={activeView} setActiveView={setActiveView} />
+        <div className="dashboard-layout">
+            <header style={{ padding: '20px', backgroundColor: '#f0f0f0', display: 'flex', justifyContent: 'space-between' }}>
+                <h1>Bienvenido, {user ? user.name || user.email : 'Usuario'}</h1>
+                <button onClick={logout} className="main-button">Cerrar Sesión</button>
+            </header>
             
-            <div className="dashboard-content"> 
-                {renderContent()}
-            </div>
+            {/* Por ahora, muestra solo un mensaje para confirmar que estás logueado */}
+            <main style={{ padding: '20px' }}>
+                <h2>Contenido del Dashboard</h2>
+                <p>¡Has iniciado sesión exitosamente! Ahora podemos trabajar en la vista de Tableros y Tareas.</p>
+                {/* Aquí deberías cargar el componente Sidebar y las Rutas internas */}
+            </main>
         </div>
     );
 };

@@ -1,43 +1,68 @@
-import React, { useState } from 'react';
+// src/components/CreateBoard.jsx
 
+import React, { useState } from 'react';
+import { useAuth } from '../useAuth.js';
+import { useNavigate } from 'react-router-dom'; 
 
 const CreateBoard = () => {
-    const [boardName, setBoardName] = useState('');
-    const [columns, setColumns] = useState([{ id: 1, name: 'Por Hacer' }, { id: 2, name: 'En Progreso' }, { id: 3, name: 'Completado' }]);
-    const [newColumnName, setNewColumnName] = useState('');
+    const { createBoard } = useAuth(); 
+    const navigate = useNavigate();
 
+    const [boardName, setBoardName] = useState('');
+    const [columns, setColumns] = useState(['Por Hacer', 'En Progreso', 'Completado']); 
+    const [newColumnName, setNewColumnName] = useState('');
+    const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+
+    // ... (handleAddColumn y handleRemoveColumn, usa strings en lugar de objetos) ...
 
     const handleAddColumn = () => {
-        if (newColumnName.trim() === '') return;
-        setColumns([...columns, { id: Date.now(), name: newColumnName.trim() }]);
-        setNewColumnName('');
+        if (newColumnName.trim() && !columns.includes(newColumnName.trim())) {
+            setColumns([...columns, newColumnName.trim()]);
+            setNewColumnName('');
+        }
     };
 
-    const handleRemoveColumn = (id) => {
-        setColumns(columns.filter(col => col.id !== id));
+    const handleRemoveColumn = (nameToRemove) => {
+        setColumns(columns.filter(col => col !== nameToRemove));
     };
 
-    const handleSubmit = (e) => {
+
+    const handleSubmit = async (e) => { 
         e.preventDefault();
+        setError('');
+        setIsLoading(true);
+
         if (boardName.trim() === '' || columns.length === 0) {
-            alert('Por favor, define el nombre del tablero y al menos una columna.');
+            setError('El nombre del tablero es obligatorio.');
+            setIsLoading(false);
             return;
         }
+
+        const boardData = {
+            name: boardName.trim(),
+            columns: columns.map(col => ({ name: col })) 
+        };
         
-     
-        console.log("Tablero a crear:", { name: boardName, columns });
-        alert(`Tablero "${boardName}" creado con ${columns.length} columnas (simulado)`);
-
-
-        setBoardName('');
-        setColumns([{ id: 1, name: 'Por Hacer' }, { id: 2, name: 'En Progreso' }, { id: 3, name: 'Completado' }]);
+        const result = await createBoard(boardData);
+        setIsLoading(false);
+        
+        if (result.success) {
+            alert(`Tablero "${boardName}" creado exitosamente!`);
+            navigate('/boards'); // Redirige a /boards
+        } else {
+            setError(result.error || 'Fallo la conexión con el servidor.');
+        }
     };
 
     return (
         <div className="dashboard-content-section">
             <h1 className="board-form-title">Crear Nuevo Tablero Kanban</h1>
+            
+            {error && <p className="error-text error-message">{error}</p>}
 
             <form className="main-card form-container" onSubmit={handleSubmit}>
+                {/* ... (resto del formulario) ... */}
                 <label className="form-label">Nombre del Tablero</label>
                 <input
                     type="text"
@@ -47,13 +72,14 @@ const CreateBoard = () => {
                     className="form-input"
                     required
                 />
-
+                
+                {/* ... (Columnas) ... */}
                 <label className="form-label">Columnas (Espacios) del Tablero</label>
                 <div className="column-list">
-                    {columns.map(col => (
-                        <div key={col.id} className="column-tag">
-                            {col.name}
-                            <span className="column-remove-btn" onClick={() => handleRemoveColumn(col.id)}>
+                    {columns.map((colName, index) => (
+                        <div key={index} className="column-tag">
+                            {colName}
+                            <span className="column-remove-btn" onClick={() => handleRemoveColumn(colName)}>
                                 x
                             </span>
                         </div>
@@ -68,13 +94,13 @@ const CreateBoard = () => {
                         placeholder="Nombre de la nueva columna (Ej: Revisión)"
                         className="form-input add-column-input"
                     />
-                    <button type="button" onClick={handleAddColumn} className="secondary-button">
+                    <button type="button" onClick={handleAddColumn} className="secondary-button" disabled={!newColumnName.trim()}>
                         Añadir
                     </button>
                 </div>
 
-                <button type="submit" className="main-button" style={{ marginTop: '20px' }}>
-                    Crear Tablero
+                <button type="submit" className="main-button" style={{ marginTop: '20px' }} disabled={isLoading || columns.length === 0}>
+                    {isLoading ? "Creando..." : "Crear Tablero"}
                 </button>
             </form>
         </div>

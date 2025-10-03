@@ -2,7 +2,8 @@ import React from 'react';
 import LoginRegister from './components/LoginRegister';
 import Dashboard from './components/Dashboard';
 
-import { AuthProvider, useAuth } from './AuthContext';
+import { AuthProvider } from './AuthContext';
+import { useAuth } from './useAuth.js';
 import { COLORS } from './utils/styles'; 
 
 

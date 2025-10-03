@@ -6,7 +6,7 @@ from .models import User, Board, Column, Card
 class CardSerializer(serializers.ModelSerializer):
     class Meta:
         model = Card
-        fields = '__all__'
+        fields = 'all'
 
 
 class ColumnSerializer(serializers.ModelSerializer):
@@ -14,7 +14,7 @@ class ColumnSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Column
-        fields = '__all__'
+        fields = 'all'
 
 
 class BoardSerializer(serializers.ModelSerializer):
@@ -22,7 +22,7 @@ class BoardSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Board
-        fields = '__all__'
+        fields = 'all'
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -45,3 +45,4 @@ class UserSerializer(serializers.ModelSerializer):
             instance.password_hash = make_password(password)
             instance.save()
         return super().update(instance, validated_data)
+
