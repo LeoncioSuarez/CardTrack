@@ -13,11 +13,8 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
+BASE_DIR = Path(__file__).resolve().parent.parent  
 
-# Carpeta donde está settings.py
-BASE_DIR = Path(__file__).resolve().parent.parent  # sube dos niveles hasta donde está manage.py
-
-# Ruta al archivo .env (renombrado si quieres a .env o puedes dejar credentials.env)
 dotenv_path = BASE_DIR / 'credentials.env'
 load_dotenv(dotenv_path, override=True)
 

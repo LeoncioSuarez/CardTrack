@@ -1,5 +1,3 @@
-from django.shortcuts import render
-# product/views.py
 from django.utils import timezone
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -7,6 +5,7 @@ from rest_framework import status, viewsets
 from django.contrib.auth.hashers import check_password
 from .models import User, Board, Column, Card
 from .serializers import UserSerializer, BoardSerializer, ColumnSerializer, CardSerializer
+
 
 class UserViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], url_path="me")
@@ -21,22 +20,6 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response(serializer.data)
         except Exception:
             return Response({'error': 'Usuario no autenticado'}, status=status.HTTP_401_UNAUTHORIZED)
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-
-class BoardViewSet(viewsets.ModelViewSet):
-    queryset = Board.objects.all()
-    serializer_class = BoardSerializer
-
-class ColumnViewSet(viewsets.ModelViewSet):
-    queryset = Column.objects.all()
-    serializer_class = ColumnSerializer
-
-class CardViewSet(viewsets.ModelViewSet):
-    queryset = Card.objects.all()
-    serializer_class = CardSerializer
-
-class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
@@ -59,15 +42,27 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response({"error": "Usuario no encontrado"}, status=status.HTTP_404_NOT_FOUND)
 
         if check_password(password, user.password_hash):
+            # Opcional: actualizar last_login
             user.last_login = timezone.now()
             user.save()
-            # Simulación de token (puedes usar JWT en producción)
-            token = f"token-{user.id}-{user.email}"
             return Response({
-                "token": token,
+                "message": "Login exitoso",
                 "user_id": user.id,
                 "name": user.name,
                 "email": user.email
             })
         else:
-            return Response({"error": "Credenciales inválidas."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Contraseña incorrecta"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class BoardViewSet(viewsets.ModelViewSet):
+    queryset = Board.objects.all()
+    serializer_class = BoardSerializer
+
+class ColumnViewSet(viewsets.ModelViewSet):
+    queryset = Column.objects.all()
+    serializer_class = ColumnSerializer
+
+class CardViewSet(viewsets.ModelViewSet):
+    queryset = Card.objects.all()
+    serializer_class = CardSerializer
