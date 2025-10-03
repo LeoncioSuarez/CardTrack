@@ -26,22 +26,14 @@ class BoardSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    boards = BoardSerializer(many=True, read_only=True)
-    password = serializers.CharField(write_only=True, required=False)
-
     class Meta:
         model = User
-        exclude = ('password_hash',)
+        fields = ["id", "name", "email", "password_hash", "registration_date", "last_login"]
+        extra_kwargs = {
+            "password_hash": {"write_only": True}  # No devolver la contraseña en respuestas
+        }
 
     def create(self, validated_data):
-        password = validated_data.pop('password', None)
-        if password:
-            validated_data['password_hash'] = make_password(password)
+        validated_data["password_hash"] = make_password(validated_data["password_hash"])
         return super().create(validated_data)
 
-    def update(self, instance, validated_data):
-        password = validated_data.pop('password', None)
-        if password:
-            instance.password_hash = make_password(password)
-            instance.save()
-        return super().update(instance, validated_data)
