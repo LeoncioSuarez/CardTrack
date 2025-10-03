@@ -1,7 +1,7 @@
 :root {
-  /* ================================================= */
+
   /* === VARIABLES CSS GLOBALES (PALETA DE COLORES) == */
-  /* ================================================= */
+
   --color-white: #FFFFFF;
   --color-black: #000000;
   
@@ -33,9 +33,7 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ================================================= */
 /* === AJUSTES GLOBALES BASADOS EN LA PALETA ======= */
-/* ================================================= */
 
 a {
   font-weight: 500;
@@ -58,7 +56,7 @@ h1 {
   color: var(--color-primary-text);
 }
 
-/* Base de botones */
+
 button {
   border-radius: 8px;
   border: 1px solid transparent;
@@ -78,9 +76,7 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
-/* ================================================= */
 /* === CLASES GENERALES REUTILIZABLES (COMMON_STYLES) */
-/* ================================================= */
 
 .main-card {
     padding: 40px;
@@ -114,12 +110,11 @@ button:focus-visible {
 }
 
 .danger-button:hover {
-    background-color: #C9302C; /* Tono de rojo más oscuro */
+    background-color: #C9302C; 
 }
 
-/* ================================================= */
+
 /* === CLASES DEL DASHBOARD ======================== */
-/* ================================================= */
 
 .dashboard-container {
     display: flex;
@@ -135,9 +130,9 @@ button:focus-visible {
     margin-left: 250px; 
 }
 
-/* ================================================= */
+
 /* === CLASES DEL SIDEBAR (Corregido desbordamiento) == */
-/* ================================================= */
+
 
 .sidebar-menu {
     width: 250px;
@@ -186,9 +181,8 @@ button:focus-visible {
     align-self: stretch; 
 }
 
-/* ================================================= */
+
 /* === CLASES DE LOGIN/REGISTER ==================== */
-/* ================================================= */
 
 .auth-container {
     display: flex;
@@ -239,9 +233,9 @@ button:focus-visible {
     margin-bottom: 15px;
 }
 
-/* ================================================= */
+
 /* === CLASES DEL PERFIL =========================== */
-/* ================================================= */
+
 
 .profile-container {
     padding: 20px;
@@ -276,9 +270,7 @@ button:focus-visible {
     color: var(--color-primary-text);
 }
 
-/* ================================================= */
 /* === CLASES DE FORMULARIOS GENERALES ============= */
-/* ================================================= */
 
 .form-container {
     display: flex;
@@ -316,12 +308,10 @@ button:focus-visible {
 }
 
 .secondary-button:hover {
-    background-color: #4CAF50; /* Tono de verde más oscuro */
+    background-color: #4CAF50; 
 }
 
-/* ================================================= */
 /* === CLASES ESPECÍFICAS DE CREATE BOARD ========== */
-/* ================================================= */
 
 .board-form-title {
     color: var(--color-primary-text);
@@ -365,9 +355,7 @@ button:focus-visible {
     margin-bottom: 0 !important; 
 }
 
-/* ================================================= */
 /* === CLASES DE STATUS Y BOTONES ESPECÍFICOS ====== */
-/* ================================================= */
 
 .warning-button {
     background-color: var(--color-status-warning); 
@@ -382,12 +370,10 @@ button:focus-visible {
 }
 
 .warning-button:hover {
-    background-color: #DB9840; /* Tono de naranja más oscuro */
+    background-color: #DB9840; 
 }
 
-/* ================================================= */
 /* === CLASES DEL COMPONENTE SETTINGS ============== */
-/* ================================================= */
 
 .settings-container {
     padding: 20px;
@@ -399,11 +385,10 @@ button:focus-visible {
 }
 
 .settings-section {
-    /* Usa main-card para el padding y la sombra */
+   
     max-width: 500px;
     margin-bottom: 30px;
-    /* Quitamos el padding aquí si usamos main-card */
-    /* padding: 20px; */ 
+    
 }
 
 .settings-section-title {
@@ -420,7 +405,7 @@ button:focus-visible {
     padding: 10px 0;
 }
 
-/* Base estática del Toggle Switch (el contenedor) */
+
 .toggle-base {
     width: 40px;
     height: 20px;
@@ -430,7 +415,7 @@ button:focus-visible {
     transition: background-color 0.3s;
 }
 
-/* La bolita del Toggle Switch */
+
 .toggle-circle {
     position: absolute;
     top: 2px;

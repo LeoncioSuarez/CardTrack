@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAuth } from '../AuthContext'; 
+import { useAuth } from '../useAuth.js';
 
 const menuItems = [
     { id: 'profile', label: 'Mi Perfil' },
