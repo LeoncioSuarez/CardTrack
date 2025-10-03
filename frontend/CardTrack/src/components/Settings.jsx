@@ -1,0 +1,48 @@
+import React, { useState } from 'react';
+
+const Settings = () => {
+    const [isDarkMode, setIsDarkMode] = useState(false);
+
+    const handlePasswordChange = () => {
+        alert('Se ha enviado un enlace para cambiar la contraseña a tu correo. (Simulado)');
+    };
+
+    return (
+        <div className="settings-container">
+            <h1 className="settings-title">Opciones y Seguridad</h1>
+
+            <div className="main-card settings-section">
+                <h2 className="settings-section-title">Opciones de Interfaz</h2>
+                <div className="setting-row">
+                    <span>Modo Oscuro</span>
+                    <div 
+                        className="toggle-base" 
+                        onClick={() => setIsDarkMode(!isDarkMode)}
+                        style={{
+                            backgroundColor: isDarkMode ? 'var(--color-accent-primary)' : 'var(--color-secondary-text)',
+                        }}
+                    >
+                        <div 
+                            className="toggle-circle"
+                            style={{
+                                left: isDarkMode ? '22px' : '2px',
+                            }}
+                        ></div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="main-card settings-section">
+                <h2 className="settings-section-title">Seguridad de la Cuenta</h2>
+                <div className="setting-row">
+                    <span>Cambiar Contraseña</span>
+                    <button className="warning-button" onClick={handlePasswordChange}>
+                        Cambiar
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default Settings;
