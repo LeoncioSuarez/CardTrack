@@ -8,6 +8,18 @@ from .serializers import UserSerializer, BoardSerializer, ColumnSerializer, Card
 
 
 class UserViewSet(viewsets.ModelViewSet):
+    @action(detail=False, methods=["get"], url_path="me")
+    def me(self, request):
+        # Simulación: obtener usuario por token (en producción usar JWT)
+        token = request.headers.get('Authorization', '').replace('Token ', '')
+        # Extraer el email del token simulado
+        try:
+            email = token.split('-')[-1]
+            user = User.objects.get(email=email)
+            serializer = self.get_serializer(user)
+            return Response(serializer.data)
+        except Exception:
+            return Response({'error': 'Usuario no autenticado'}, status=status.HTTP_401_UNAUTHORIZED)
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
