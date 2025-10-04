@@ -1,26 +1,40 @@
 // src/components/Dashboard.jsx
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../useAuth.js';
+import Sidebar from './Sidebar';
+import Profile from './Profile';
+import CreateBoard from './CreateBoard';
+import Settings from './Settings';
 
 const Dashboard = () => {
-    const { user, logout } = useAuth();
-    
-    // Aquí es donde iría la lógica del dashboard real (sidebar, rutas internas, etc.)
+    const { user } = useAuth();
+    const [activeView, setActiveView] = useState('createBoard');
+
+    let content;
+    switch (activeView) {
+        case 'profile':
+            content = <Profile />;
+            break;
+        case 'createBoard':
+            content = <CreateBoard />;
+            break;
+        case 'settings':
+            content = <Settings />;
+            break;
+        case 'myBoards':
+            content = <div className="boards-section"><h1>Tus Tableros</h1><p>Aquí iría la lista de tableros del usuario.</p></div>;
+            break;
+        default:
+            content = <div className="dashboard-section"><h1>Bienvenido, {user ? user.name || user.email : 'Usuario'}</h1><p>¡Has iniciado sesión exitosamente! Ahora puedes trabajar en la vista de tableros y tareas.</p></div>;
+    }
 
     return (
-        <div className="dashboard-layout">
-            <header style={{ padding: '20px', backgroundColor: '#f0f0f0', display: 'flex', justifyContent: 'space-between' }}>
-                <h1>Bienvenido, {user ? user.name || user.email : 'Usuario'}</h1>
-                <button onClick={logout} className="main-button">Cerrar Sesión</button>
-            </header>
-            
-            {/* Por ahora, muestra solo un mensaje para confirmar que estás logueado */}
-            <main style={{ padding: '20px' }}>
-                <h2>Contenido del Dashboard</h2>
-                <p>¡Has iniciado sesión exitosamente! Ahora podemos trabajar en la vista de Tableros y Tareas.</p>
-                {/* Aquí deberías cargar el componente Sidebar y las Rutas internas */}
-            </main>
+        <div className="dashboard-container">
+            <Sidebar activeView={activeView} setActiveView={setActiveView} />
+            <div className="dashboard-content">
+                {content}
+            </div>
         </div>
     );
 };
