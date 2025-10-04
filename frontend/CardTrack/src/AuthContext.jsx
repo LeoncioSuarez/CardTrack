@@ -80,33 +80,53 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(false);
     };
 
-    // Crear tablero 
+    // Crear tablero y columnas asociadas
     const createBoard = async (boardData) => {
         const token = localStorage.getItem('token');
         if (!token) return { success: false, error: 'No autenticado. Por favor, inicia sesión.' };
         setLoading(true);
         setError(null);
         try {
+            // 1. Crear el board (title y user)
+            const userId = user?.id;
             const response = await fetch(`${API_BASE_URL}/boards/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Token ${token}`
                 },
-                body: JSON.stringify(boardData)
+                body: JSON.stringify({ title: boardData.name, user: userId })
             });
-            const data = await response.json();
-            if (response.ok) {
-                return { success: true, board: data };
-            } else {
-                setError(data.detail || 'Error al crear el tablero. Verifica los datos.');
-                return { success: false, error: data.detail || 'Error al crear el tablero. Verifica los datos.' };
+            const board = await response.json();
+            if (!response.ok || !board.id) {
+                setError(board.detail || 'Error al crear el tablero. Verifica los datos.');
+                return { success: false, error: board.detail || 'Error al crear el tablero. Verifica los datos.' };
             }
+
+            // 2. Crear las columnas asociadas (title)
+            let columnsCreated = [];
+            for (let i = 0; i < boardData.columns.length; i++) {
+                const col = boardData.columns[i];
+                const colRes = await fetch(`${API_BASE_URL}/boards/${board.id}/columns/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Token ${token}`
+                    },
+                    body: JSON.stringify({ title: col.name, position: i, board: board.id })
+                });
+                const colData = await colRes.json();
+                if (colRes.ok && colData.id) {
+                    columnsCreated.push(colData);
+                }
+            }
+
+            setLoading(false);
+            return { success: true, board, columns: columnsCreated };
         } catch {
             setError('No se pudo conectar con el servidor.');
-            return { success: false, error: 'No se pudo conectar con el servidor.' };
-        } finally {
             setLoading(false);
+            return { success: false, error: 'No se pudo conectar con el servidor.' };
         }
     };
 
