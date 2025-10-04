@@ -46,10 +46,9 @@ const CreateBoard = () => {
         
         const result = await createBoard(boardData);
         setIsLoading(false);
-        
         if (result.success) {
-            alert(`Tablero "${boardName}" creado exitosamente!`);
-            navigate('/boards'); // Redirige a /boards
+            alert(`Tablero "${boardName}" y ${result.columns.length} columnas creadas exitosamente!`);
+            navigate('/boards');
         } else {
             setError(result.error || 'Fallo la conexión con el servidor.');
         }
