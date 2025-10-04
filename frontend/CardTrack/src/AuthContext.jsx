@@ -1,8 +1,9 @@
 
-import React, { createContext, useState, useEffect, useCallback } from 'react';
+
+import React, { useState, useEffect } from 'react';
+import { AuthContext } from './AuthContext.js';
 
 const API_BASE_URL = 'http://127.0.0.1:8000/api';
-export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -10,8 +11,6 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-
-    // Ya no se usa fetchUserWithToken, el usuario se obtiene del login
 
     // Login
     const login = async (email, password) => {
@@ -39,7 +38,7 @@ export const AuthProvider = ({ children }) => {
                 setIsAuthenticated(false);
                 return { success: false, error: data.error || 'Credenciales inválidas.' };
             }
-        } catch (err) {
+        } catch {
             setError('No se pudo conectar con el servidor.');
             setUser(null);
             setIsAuthenticated(false);
@@ -66,7 +65,7 @@ export const AuthProvider = ({ children }) => {
                 setError(data.email ? `Email: ${data.email[0]}` : (data.detail || 'Error desconocido al registrar.'));
                 return { success: false, error: data.email ? `Email: ${data.email[0]}` : (data.detail || 'Error desconocido al registrar.') };
             }
-        } catch (err) {
+        } catch {
             setError('No se pudo conectar con el servidor.');
             return { success: false, error: 'No se pudo conectar con el servidor.' };
         } finally {
@@ -81,7 +80,7 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(false);
     };
 
-    // Crear tablero (ejemplo de uso de token)
+    // Crear tablero 
     const createBoard = async (boardData) => {
         const token = localStorage.getItem('token');
         if (!token) return { success: false, error: 'No autenticado. Por favor, inicia sesión.' };
@@ -103,7 +102,7 @@ export const AuthProvider = ({ children }) => {
                 setError(data.detail || 'Error al crear el tablero. Verifica los datos.');
                 return { success: false, error: data.detail || 'Error al crear el tablero. Verifica los datos.' };
             }
-        } catch (err) {
+        } catch {
             setError('No se pudo conectar con el servidor.');
             return { success: false, error: 'No se pudo conectar con el servidor.' };
         } finally {
@@ -111,11 +110,31 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    // Al cargar, intenta recuperar usuario si hay token (pero no hace fetch)
+    // Al cargar, intenta recuperar usuario si hay token 
     useEffect(() => {
         const token = localStorage.getItem('token');
         if (token) {
             setIsAuthenticated(true);
+            // Fetch datos completos del usuario
+            fetch(`${API_BASE_URL}/users/me/`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Token ${token}`
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (!data.error) {
+                    setUser({
+                        id: data.id,
+                        name: data.name,
+                        email: data.email,
+                        registration_date: data.registration_date || data.date_joined,
+                        last_login: data.last_login
+                    });
+                }
+            });
         }
     }, []);
 

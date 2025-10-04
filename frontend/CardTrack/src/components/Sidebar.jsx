@@ -24,27 +24,18 @@ const Sidebar = ({ activeView, setActiveView }) => {
         <div className="sidebar-menu">
             <div className="sidebar-title">CardTrack</div>
             <ul className="sidebar-list">
-                {menuItems.map((item) => {
-                
-                    const isActive = 
-                        item.id === activeView || 
-                        ((item.id === 'options' || item.id === 'security') && activeView === 'settings');
-
-                    return (
-                        <li
-                            key={item.id}
-              
-                            className={`menu-item ${isActive ? 'active' : ''}`}
-                            onClick={() => handleItemClick(item.id)}
-                        >
-                            {item.label}
-                        </li>
-                    );
-                })}
+                {menuItems.map((item) => (
+                    <li
+                        key={item.id}
+                        className={`menu-item${activeView === item.id ? ' active' : ''}`}
+                        onClick={() => handleItemClick(item.id)}
+                    >
+                        {item.label}
+                    </li>
+                ))}
             </ul>
-           
-            <div style={{ flexGrow: 1 }}></div> 
-            <button className="logout-button" onClick={logout}>
+            <div style={{ flexGrow: 1 }}></div>
+            <button className="main-button sidebar-logout-button" onClick={logout}>
                 Cerrar Sesión
             </button>
         </div>

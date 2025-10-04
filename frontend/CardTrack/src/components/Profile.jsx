@@ -27,12 +27,11 @@ const Profile = () => {
 
                 <div className="profile-info-row">
                     <span className="profile-label">Fecha de Registro:</span>
-                    <span className="profile-value">{user.registrationDate}</span>
+                    <span className="profile-value">{user.registration_date ? new Date(user.registration_date).toLocaleString() : (user.registrationDate ? new Date(user.registrationDate).toLocaleString() : 'No disponible')}</span>
                 </div>
-                
                 <div className="profile-info-row"> 
                     <span className="profile-label">Último Inicio de Sesión:</span>
-                    <span className="profile-value">{user.lastLogin}</span>
+                    <span className="profile-value">{user.last_login ? new Date(user.last_login).toLocaleString() : (user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'No disponible')}</span>
                 </div>
             </div>
         </div>
