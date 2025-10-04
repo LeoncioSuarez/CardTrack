@@ -1,7 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const Settings = () => {
-    const [isDarkMode, setIsDarkMode] = useState(false);
+    const [isDarkMode, setIsDarkMode] = useState(() => {
+        // Lee el estado guardado en localStorage
+        return localStorage.getItem('cardtrack-darkmode') === 'true';
+    });
+
+    useEffect(() => {
+        // Aplica el tema al cargar el componente
+        const root = document.documentElement;
+        if (isDarkMode) {
+            root.style.setProperty('--color-primary-background', '#181818');
+            root.style.setProperty('--color-surface-background', '#232323');
+            root.style.setProperty('--color-primary-text', '#f5f5f5');
+            root.style.setProperty('--color-secondary-text', '#bdbdbd');
+        } else {
+            root.style.setProperty('--color-primary-background', '#F9F9F9');
+            root.style.setProperty('--color-surface-background', '#EBEBEB');
+            root.style.setProperty('--color-primary-text', '#333333');
+            root.style.setProperty('--color-secondary-text', '#777777');
+        }
+    }, [isDarkMode]);
+
+    const handleToggleDarkMode = () => {
+        setIsDarkMode((prev) => {
+            const next = !prev;
+            localStorage.setItem('cardtrack-darkmode', next);
+            return next;
+        });
+    };
 
     const handlePasswordChange = () => {
         alert('Se ha enviado un enlace para cambiar la contraseña a tu correo. (Simulado)');
@@ -10,14 +37,14 @@ const Settings = () => {
     return (
         <div className="settings-container">
             <h1 className="settings-title">Opciones y Seguridad</h1>
-
             <div className="main-card settings-section">
                 <h2 className="settings-section-title">Opciones de Interfaz</h2>
+                <hr />
                 <div className="setting-row">
                     <span>Modo Oscuro</span>
                     <div 
                         className="toggle-base" 
-                        onClick={() => setIsDarkMode(!isDarkMode)}
+                        onClick={handleToggleDarkMode}
                         style={{
                             backgroundColor: isDarkMode ? 'var(--color-accent-primary)' : 'var(--color-secondary-text)',
                         }}
@@ -31,9 +58,9 @@ const Settings = () => {
                     </div>
                 </div>
             </div>
-
             <div className="main-card settings-section">
                 <h2 className="settings-section-title">Seguridad de la Cuenta</h2>
+                <hr />
                 <div className="setting-row">
                     <span>Cambiar Contraseña</span>
                     <button className="warning-button" onClick={handlePasswordChange}>

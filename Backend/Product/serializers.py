@@ -36,13 +36,15 @@ class BoardSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=True)
     class Meta:
         model = User
-        fields = ["id", "name", "email", "password_hash", "registration_date", "last_login"]
+        fields = ["id", "name", "email", "password", "registration_date", "last_login"]
         extra_kwargs = {
-            "password_hash": {"write_only": True} 
+            "password": {"write_only": True}
         }
 
     def create(self, validated_data):
-        validated_data["password_hash"] = make_password(validated_data["password_hash"])
+        password = validated_data.pop("password")
+        validated_data["password_hash"] = make_password(password)
         return super().create(validated_data)

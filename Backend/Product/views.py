@@ -45,11 +45,14 @@ class UserViewSet(viewsets.ModelViewSet):
             # Opcional: actualizar last_login
             user.last_login = timezone.now()
             user.save()
+            # Simula un token para el frontend
+            token = f"fake-token-{user.email}"
             return Response({
                 "message": "Login exitoso",
                 "user_id": user.id,
                 "name": user.name,
-                "email": user.email
+                "email": user.email,
+                "token": token
             })
         else:
             return Response({"error": "Contraseña incorrecta"}, status=status.HTTP_400_BAD_REQUEST)

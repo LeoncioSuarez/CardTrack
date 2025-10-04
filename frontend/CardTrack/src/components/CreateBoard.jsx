@@ -56,13 +56,10 @@ const CreateBoard = () => {
     };
 
     return (
-        <div className="dashboard-content-section">
-            <h1 className="board-form-title">Crear Nuevo Tablero Kanban</h1>
-            
+        <div className="dashboard-section">
+            <h1 className="board-title">Crear Nuevo Tablero Kanban</h1>
             {error && <p className="error-text error-message">{error}</p>}
-
             <form className="main-card form-container" onSubmit={handleSubmit}>
-                {/* ... (resto del formulario) ... */}
                 <label className="form-label">Nombre del Tablero</label>
                 <input
                     type="text"
@@ -72,9 +69,7 @@ const CreateBoard = () => {
                     className="form-input"
                     required
                 />
-                
-                {/* ... (Columnas) ... */}
-                <label className="form-label">Columnas (Espacios) del Tablero</label>
+                <label className="form-label">Columnas del Tablero</label>
                 <div className="column-list">
                     {columns.map((colName, index) => (
                         <div key={index} className="column-tag">
@@ -85,7 +80,6 @@ const CreateBoard = () => {
                         </div>
                     ))}
                 </div>
-
                 <div className="add-column-container">
                     <input
                         type="text"
@@ -98,8 +92,7 @@ const CreateBoard = () => {
                         Añadir
                     </button>
                 </div>
-
-                <button type="submit" className="main-button" style={{ marginTop: '20px' }} disabled={isLoading || columns.length === 0}>
+                <button type="submit" className="main-button" disabled={isLoading || columns.length === 0}>
                     {isLoading ? "Creando..." : "Crear Tablero"}
                 </button>
             </form>
