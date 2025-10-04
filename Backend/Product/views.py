@@ -74,7 +74,8 @@ class ColumnViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         board_id = self.kwargs.get('board_pk')
         if board_id:
-            serializer.save(board_id=board_id)
+            from .models import Board
+            serializer.save(board=Board.objects.get(id=board_id))
         else:
             serializer.save()
 
