@@ -60,9 +60,31 @@ class BoardViewSet(viewsets.ModelViewSet):
     serializer_class = BoardSerializer
 
 class ColumnViewSet(viewsets.ModelViewSet):
-    queryset = Column.objects.all()
     serializer_class = ColumnSerializer
 
+    def get_queryset(self):
+        board_id = self.kwargs.get('board_pk')
+        if board_id:
+            return Column.objects.filter(board_id=board_id)
+        return Column.objects.all()
+
+    def perform_create(self, serializer):
+        board_id = self.kwargs.get('board_pk')
+        if board_id:
+            serializer.save(board_id=board_id)
+        else:
+            serializer.save()
+
+
 class CardViewSet(viewsets.ModelViewSet):
-    queryset = Card.objects.all()
     serializer_class = CardSerializer
+
+    def get_queryset(self):
+        board_id = self.kwargs.get('board_pk')
+        column_id = self.kwargs.get('column_pk')
+        return Card.objects.filter(column__id=column_id, column__board__id=board_id)
+
+    def perform_create(self, serializer):
+        column_id = self.kwargs.get('column_pk')
+        serializer.save(column_id=column_id)
+
