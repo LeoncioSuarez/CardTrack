@@ -1,7 +1,4 @@
 :root {
-
-  /* === VARIABLES CSS GLOBALES (PALETA DE COLORES) == */
-
   --color-white: #FFFFFF;
   --color-black: #000000;
   
@@ -18,7 +15,6 @@
   
   --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.1); 
 
-  /* Estilos globales */
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
@@ -33,15 +29,13 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* === AJUSTES GLOBALES BASADOS EN LA PALETA ======= */
-
 a {
   font-weight: 500;
   color: var(--color-accent-primary);
   text-decoration: inherit;
 }
 a:hover {
-  color: #535bf2; 
+  color: #0056b3;
 }
 
 body {
@@ -50,378 +44,367 @@ body {
   min-height: 100vh;
 }
 
+#root { 
+  max-width: none; 
+  margin: 0;       
+  padding: 0;      
+  width: 100%;
+  min-height: 100vh;
+}
+
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
-  color: var(--color-primary-text);
+  color: var(--color-accent-primary);
 }
 
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: var(--color-surface-background);
+button, .main-button {
+  background-color: var(--color-accent-primary);
+  color: var(--color-white);
+  border: none;
+  border-radius: 4px;
+  padding: 10px 15px;
   cursor: pointer;
-  transition: border-color 0.25s, background-color 0.25s;
-}
-button:hover {
-  border-color: var(--color-accent-primary);
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  font-weight: bold;
+  transition: background-color 0.2s;
+  width: 100%;
+  box-sizing: border-box; 
 }
 
-/* === CLASES GENERALES REUTILIZABLES (COMMON_STYLES) */
-
-.main-card {
-    padding: 40px;
-    border-radius: 8px;
-    background-color: var(--color-white);
-    box-shadow: var(--shadow-card);
+button:hover, .main-button:hover {
+  background-color: #0056b3;
 }
 
-.main-button {
-    padding: 10px;
-    background-color: var(--color-accent-primary);
-    color: var(--color-white);
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
+button:disabled, .main-button:disabled {
+  background-color: var(--color-secondary-text);
+  cursor: not-allowed;
 }
 
-.main-button:hover {
-    background-color: #006AB8; 
+.form-input, .auth-input {
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 15px;
+  border: 1px solid var(--color-secondary-text);
+  border-radius: 4px;
+  box-sizing: border-box;
 }
 
-.danger-button {
-    padding: 10px 20px;
-    background-color: var(--color-status-danger);
-    color: var(--color-white);
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
+.auth-page-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
 }
 
-.danger-button:hover {
-    background-color: #C9302C; 
-}
-
-
-/* === CLASES DEL DASHBOARD ======================== */
-
-.dashboard-container {
-    display: flex;
-    background-color: var(--color-primary-background);
-    min-height: 100vh;
-    width: 100%;
-}
-
-.dashboard-content {
-    flex-grow: 1;
-    padding: 40px;
-    color: var(--color-primary-text);
-    margin-left: 250px; 
-}
-
-
-/* === CLASES DEL SIDEBAR (Corregido desbordamiento) == */
-
-
-.sidebar-menu {
-    width: 250px;
-    background-color: var(--color-surface-background);
-    padding: 0; 
-    height: 100vh;
-    position: fixed;
-    display: flex;
-    flex-direction: column;
-}
-
-.sidebar-title {
-    color: var(--color-primary-text);
-    text-align: center;
-    margin-bottom: 30px;
-    font-size: 1.5em;
-    font-weight: bold;
-    padding-top: 20px; 
-}
-
-.sidebar-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.menu-item {
-    padding: 15px 20px;
-    cursor: pointer;
-    color: var(--color-primary-text);
-    transition: background-color 0.2s;
-}
-
-.menu-item:hover {
-    background-color: rgba(0, 0, 0, 0.05);
-}
-
-.menu-item.active {
-    background-color: var(--color-accent-primary);
-    color: var(--color-white);
-    font-weight: bold;
-}
-
-.sidebar-logout-button {
-    margin: 0 20px 20px 20px; 
-    align-self: stretch; 
-}
-
-
-/* === CLASES DE LOGIN/REGISTER ==================== */
-
-.auth-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-}
-
-.auth-card {
-    width: 350px;
-}
-
-.auth-title {
-    color: var(--color-primary-text);
-    margin-bottom: 30px;
-    text-align: center;
-}
-
-.auth-input {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 15px;
-    border: 1px solid var(--color-surface-background);
-    border-radius: 4px;
-    box-sizing: border-box;
-}
-
-.auth-button {
-    width: 100%;
-    margin-top: 10px;
+.auth-form-card {
+  background-color: var(--color-white);
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
 }
 
 .auth-toggle-text {
-    margin-top: 20px;
-    text-align: center;
-    color: var(--color-primary-text);
-    cursor: pointer;
-    user-select: none;
+  margin-top: 20px;
+  color: var(--color-accent-primary);
+  cursor: pointer;
+  text-decoration: underline;
 }
 
-.auth-toggle-text:hover {
-    color: var(--color-accent-primary);
+.error-message {
+  color: var(--color-status-danger);
+  margin-bottom: 15px;
+  font-weight: bold;
 }
 
-.error-text {
-    color: var(--color-status-danger);
-    text-align: center;
-    margin-bottom: 15px;
+.main-card {
+  background-color: var(--color-surface-background);
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: var(--shadow-card);
 }
-
-
-/* === CLASES DEL PERFIL =========================== */
-
-
-.profile-container {
-    padding: 20px;
-}
-
-.profile-title {
-    color: var(--color-primary-text);
-    margin-bottom: 30px;
-}
-
-.profile-info-box {
-    max-width: 500px; 
-}
-
-.profile-info-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--color-surface-background);
-}
-
-.profile-info-row:last-child {
-    border-bottom: none;
-}
-
-.profile-label {
-    font-weight: bold;
-    color: var(--color-secondary-text);
-}
-
-.profile-value {
-    color: var(--color-primary-text);
-}
-
-/* === CLASES DE FORMULARIOS GENERALES ============= */
-
-.form-container {
-    display: flex;
-    flex-direction: column;
-    max-width: 600px;
-    padding: 30px;
-}
-
-.form-label {
-    margin-bottom: 5px;
-    font-weight: bold;
-    color: var(--color-primary-text);
-    margin-top: 15px;
-}
-
-.form-input {
-    padding: 10px;
-    border: 1px solid var(--color-surface-background);
-    border-radius: 4px;
-    margin-bottom: 15px;
-    box-sizing: border-box; 
-    width: 100%; 
-}
-
 
 .secondary-button {
-    background-color: var(--color-accent-secondary);
-    color: var(--color-white);
-    border: none;
-    border-radius: 4px;
-    padding: 10px 15px;
-    cursor: pointer;
-    font-weight: bold;
-    transition: background-color 0.2s;
+  background-color: transparent;
+  color: var(--color-accent-primary);
+  border: 1px solid var(--color-accent-primary);
+  padding: 5px 10px;
+  width: auto;
+  font-weight: normal;
+  transition: all 0.2s;
 }
 
 .secondary-button:hover {
-    background-color: #4CAF50; 
+  background-color: var(--color-accent-primary);
+  color: var(--color-white);
 }
 
-/* === CLASES ESPECÍFICAS DE CREATE BOARD ========== */
-
-.board-form-title {
-    color: var(--color-primary-text);
-    margin-bottom: 30px;
+.danger-button {
+  background-color: var(--color-status-danger);
+  color: var(--color-white);
+  border: 1px solid var(--color-status-danger);
+}
+.danger-button:hover {
+  background-color: #A33A38;
 }
 
+.dashboard-container {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.sidebar-menu {
+  width: 250px;
+  min-width: 250px;
+  background-color: var(--color-white);
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  padding: 20px 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-title {
+  font-size: 1.8em;
+  font-weight: bold;
+  color: var(--color-accent-primary);
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.sidebar-list {}
+
+.sidebar-user-info {
+  padding: 10px 20px;
+  margin-bottom: 20px;
+  color: var(--color-primary-text);
+  font-size: 0.9em;
+  border-bottom: 1px solid var(--color-surface-background);
+}
+
+.menu-item {
+  display: block;
+  padding: 12px 20px;
+  margin-bottom: 5px;
+  color: var(--color-primary-text);
+  text-decoration: none;
+  transition: background-color 0.2s, color 0.2s;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.menu-item:hover {
+  background-color: var(--color-surface-background);
+  color: var(--color-accent-primary);
+}
+
+.menu-item.active {
+  background-color: var(--color-accent-primary);
+  color: var(--color-white);
+  border-radius: 0 5px 5px 0;
+}
+
+.sidebar-logout-button {
+  margin: 20px; 
+  position: static;
+  bottom: auto;
+  z-index: auto;
+}
+
+.dashboard-content {
+  flex-grow: 1;
+  padding: 40px;
+  overflow-y: auto; 
+}
+
+.boards-preview-title {
+  margin-bottom: 30px;
+}
+.boards-list {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+.board-card {
+  padding: 1.5rem;
+  min-width: 220px;
+  cursor: pointer;
+  flex-grow: 1;
+  text-align: center;
+  transition: transform 0.2s;
+}
+.board-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+.create-board-container {
+  max-width: 600px;
+  margin: 0 auto;
+}
+.form-label {
+  display: block;
+  margin: 15px 0 5px 0;
+  font-weight: bold;
+  color: var(--color-primary-text);
+}
 .column-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 10px;
-    margin-bottom: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 0;
 }
-
 .column-tag {
-    background-color: var(--color-surface-background);
-    padding: 8px 12px;
-    border-radius: 20px;
-    color: var(--color-primary-text);
-    display: flex;
-    align-items: center;
-    font-size: 0.9em;
+  background-color: var(--color-accent-secondary);
+  color: var(--color-white);
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 0.9em;
+  display: flex;
+  align-items: center;
 }
-
 .column-remove-btn {
-    margin-left: 8px;
-    cursor: pointer;
-    font-weight: bold;
-    color: var(--color-status-danger);
-    line-height: 1; 
+  margin-left: 8px;
+  cursor: pointer;
+  font-weight: bold;
 }
-
 .add-column-container {
-    display: flex;
-    gap: 10px;
-    margin-top: 10px;
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
 }
-
 .add-column-input {
-    flex-grow: 1;
-    margin-bottom: 0 !important; 
+  flex-grow: 1;
+  margin-bottom: 0 !important; 
 }
 
-/* === CLASES DE STATUS Y BOTONES ESPECÍFICOS ====== */
-
-.warning-button {
-    background-color: var(--color-status-warning); 
-    color: var(--color-white);
-    border: none;
-    border-radius: 4px;
-    padding: 10px 15px;
-    cursor: pointer;
-    font-weight: bold;
-    transition: background-color 0.2s;
-    width: auto;
+.board-editor-container {}
+.board-editor-title {
+  margin-bottom: 30px;
+  display: flex;
+  align-items: center;
+}
+.board-columns-container {
+  display: flex;
+  overflow-x: auto;
+  gap: 1rem;
+  padding: 1rem 0;
+  min-height: 80vh;
+}
+.board-column {
+  min-width: 280px;
+  max-width: 280px;
+  padding: 1rem;
+  background-color: var(--color-surface-background);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-card);
+  height: fit-content; 
+}
+.column-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid var(--color-accent-secondary);
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+}
+.tasks-list {
+  list-style: none;
+  padding: 0;
+  flex-grow: 1;
+  min-height: 10px; 
+}
+.task-item {
+  padding: 0.75rem;
+  margin: 0.5rem 0;
+  background-color: var(--color-white);
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  cursor: grab;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 5px;
+  word-break: break-word;
+}
+.task-item span {
+  flex-grow: 1;
+  text-align: left;
+}
+.add-task-section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #ccc;
+}
+.add-column-box {
+  min-width: 280px;
+  max-width: 280px;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.05);
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: fit-content;
 }
 
-.warning-button:hover {
-    background-color: #DB9840; 
+.profile-container, .settings-container {
+  padding: 20px;
 }
-
-/* === CLASES DEL COMPONENTE SETTINGS ============== */
-
-.settings-container {
-    padding: 20px;
+.profile-title, .settings-title {
+  color: var(--color-primary-text);
+  margin-bottom: 30px;
 }
-
-.settings-title {
-    color: var(--color-primary-text);
-    margin-bottom: 30px;
+.profile-info-box, .settings-section {
+  max-width: 600px;
+  margin-bottom: 30px;
 }
-
-.settings-section {
-   
-    max-width: 500px;
-    margin-bottom: 30px;
-    
+.profile-info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-surface-background);
 }
-
+.profile-label {
+  font-weight: bold;
+  color: var(--color-secondary-text);
+}
 .settings-section-title {
-    border-bottom: 2px solid var(--color-surface-background);
-    padding-bottom: 10px;
-    margin-bottom: 15px;
-    color: var(--color-accent-primary);
+  border-bottom: 2px solid var(--color-surface-background);
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+  color: var(--color-accent-primary);
 }
-
 .setting-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
 }
-
-
 .toggle-base {
-    width: 40px;
-    height: 20px;
-    border-radius: 10px;
-    cursor: pointer;
-    position: relative;
-    transition: background-color 0.3s;
+  width: 45px;
+  height: 25px;
+  border-radius: 12.5px;
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.3s;
 }
-
-
 .toggle-circle {
-    position: absolute;
-    top: 2px;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background-color: var(--color-white);
-    transition: left 0.3s;
+  width: 21px;
+  height: 21px;
+  background-color: var(--color-white);
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  transition: left 0.3s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }

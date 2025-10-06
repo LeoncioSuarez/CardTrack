@@ -2,67 +2,52 @@ import React, { useState } from 'react';
 import { useAuth } from '../useAuth.js';
 
 const LoginRegister = () => {
-    const { login, register } = useAuth(); 
-    const [isLogin, setIsLogin] = useState(true); 
+    const { login, register } = useAuth();
+    const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [name, setName] = useState(''); 
+    const [name, setName] = useState('');
     const [error, setError] = useState('');
-    const [isLoading, setIsLoading] = useState(false); // Añadido para mejor UX
+    const [isLoading, setIsLoading] = useState(false);
 
-    // 1. Hacemos la función ASÍNCRONA
-    const handleSubmit = async (e) => { 
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
-        setIsLoading(true); // Bloquea el botón
-        
-        let result; // Usaremos un objeto para almacenar el resultado { success: bool, error: str }
+        setIsLoading(true);
+
+        let result;
 
         try {
             if (isLogin) {
-                // 2. Usamos AWAIT para esperar la respuesta de Django
-                result = await login(email, password); 
+                result = await login(email, password);
             } else {
                 result = await register(name, email, password);
             }
-            
-            // 3. Verificamos el resultado devuelto por AuthContext
+
             if (!result.success) {
-                // Mostramos el error devuelto por el backend
                 setError(result.error);
             }
-
         } catch (err) {
-            // Manejo de errores de red o inesperados
-            setError('Error de comunicación con el servidor. Revisa tu red.');
-            console.error(err);
+            setError('Error de comunicación con el servidor. Intenta nuevamente.');
         } finally {
-            setIsLoading(false); // Desbloquea el botón
-        }
-        
-        // Si el registro fue exitoso, cambiamos a la vista de Login
-        if (!isLogin && result && result.success) {
-            setIsLogin(true);
-            setEmail('');
-            setPassword('');
-            setName('');
-            alert('¡Registro exitoso! Por favor, inicia sesión.');
+            setIsLoading(false);
         }
     };
 
     return (
-        <div className="auth-container">
-            <div className="main-card auth-card">
-                <h2 className="auth-title">{isLogin ? "Iniciar Sesión" : "Registrarse"}</h2>
+        <div className="auth-page-container">
+            <div className="auth-form-card">
+                <h2 className="auth-title">
+                    {isLogin ? "Iniciar Sesión" : "Registrarse"}
+                </h2>
 
-                {/* Ahora 'error' contendrá el mensaje real de Django */}
-                {error && <p className="error-text">{error}</p>} 
-
+                {error && <p className="error-message">{error}</p>}
+                
                 <form onSubmit={handleSubmit}>
                     {!isLogin && (
                         <input
                             type="text"
-                            placeholder="Nombre Completo"
+                            placeholder="Nombre de Usuario"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             className="auth-input"
@@ -94,7 +79,7 @@ const LoginRegister = () => {
                     className="auth-toggle-text"
                     onClick={() => {
                         setIsLogin(!isLogin);
-                        setError(''); 
+                        setError('');
                         setEmail('');
                         setPassword('');
                         setName('');
