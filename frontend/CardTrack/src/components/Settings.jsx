@@ -2,23 +2,15 @@ import React, { useState, useEffect } from 'react';
 
 const Settings = () => {
     const [isDarkMode, setIsDarkMode] = useState(() => {
-        // Lee el estado guardado en localStorage
         return localStorage.getItem('cardtrack-darkmode') === 'true';
     });
 
     useEffect(() => {
-        // Aplica el tema al cargar el componente
         const root = document.documentElement;
         if (isDarkMode) {
-            root.style.setProperty('--color-primary-background', '#181818');
-            root.style.setProperty('--color-surface-background', '#232323');
-            root.style.setProperty('--color-primary-text', '#f5f5f5');
-            root.style.setProperty('--color-secondary-text', '#bdbdbd');
+            root.classList.add('theme-dark');
         } else {
-            root.style.setProperty('--color-primary-background', '#F9F9F9');
-            root.style.setProperty('--color-surface-background', '#EBEBEB');
-            root.style.setProperty('--color-primary-text', '#333333');
-            root.style.setProperty('--color-secondary-text', '#777777');
+            root.classList.remove('theme-dark');
         }
     }, [isDarkMode]);
 
@@ -42,14 +34,14 @@ const Settings = () => {
                 <hr />
                 <div className="setting-row">
                     <span>Modo Oscuro</span>
-                    <div 
-                        className="toggle-base" 
+                    <div
+                        className="toggle-base"
                         onClick={handleToggleDarkMode}
                         style={{
                             backgroundColor: isDarkMode ? 'var(--color-accent-primary)' : 'var(--color-secondary-text)',
                         }}
                     >
-                        <div 
+                        <div
                             className="toggle-circle"
                             style={{
                                 left: isDarkMode ? '22px' : '2px',

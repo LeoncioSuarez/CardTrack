@@ -1,7 +1,5 @@
-// src/components/CreateBoard.jsx
-
 import React, { useState } from 'react';
-import { useAuth } from '../useAuth.js';
+import { useAuth } from '../useAuth.js'; 
 import { useNavigate } from 'react-router-dom'; 
 
 const CreateBoard = () => {
@@ -13,8 +11,6 @@ const CreateBoard = () => {
     const [newColumnName, setNewColumnName] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-
-    // ... (handleAddColumn y handleRemoveColumn, usa strings en lugar de objetos) ...
 
     const handleAddColumn = () => {
         if (newColumnName.trim() && !columns.includes(newColumnName.trim())) {
@@ -39,16 +35,12 @@ const CreateBoard = () => {
             return;
         }
 
-        const boardData = {
-            name: boardName.trim(),
-            columns: columns.map(col => ({ name: col })) 
-        };
-        
-        const result = await createBoard(boardData);
+        const result = await createBoard(boardName.trim(), columns);
         setIsLoading(false);
+
         if (result.success) {
-            alert(`Tablero "${boardName}" y ${result.columns.length} columnas creadas exitosamente!`);
-            navigate('/boards');
+            alert(`Tablero "${boardName}" y ${columns.length} columnas creadas exitosamente!`);
+            navigate('/'); 
         } else {
             setError(result.error || 'Fallo la conexión con el servidor.');
         }

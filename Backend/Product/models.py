@@ -11,6 +11,14 @@ class User(models.Model):
     def __str__(self):
         return self.email
 
+    @property
+    def is_authenticated(self):
+        """
+        Permite que rest_framework.permissions.IsAuthenticated
+        trate a este modelo como autenticado sin integrar Django Auth.
+        """
+        return True
+
 #   Table
 class Board(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="boards")

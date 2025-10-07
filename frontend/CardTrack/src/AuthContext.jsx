@@ -1,7 +1,6 @@
+import React, { useState, useEffect, createContext } from 'react';
 
-
-import React, { useState, useEffect } from 'react';
-import { AuthContext } from './AuthContext.js';
+export const AuthContext = createContext();
 
 const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
@@ -10,9 +9,8 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [token, setToken] = useState(localStorage.getItem('token') || null);
 
-
-    // Login
     const login = async (email, password) => {
         setLoading(true);
         setError(null);
@@ -25,30 +23,29 @@ export const AuthProvider = ({ children }) => {
             const data = await response.json();
             if (response.ok && data.token) {
                 localStorage.setItem('token', data.token);
+                setToken(data.token);
                 setUser({
                     id: data.user_id,
                     name: data.name,
                     email: data.email
                 });
                 setIsAuthenticated(true);
+                setLoading(false);
                 return { success: true };
             } else {
                 setError(data.error || 'Credenciales inválidas.');
                 setUser(null);
                 setIsAuthenticated(false);
+                setLoading(false);
                 return { success: false, error: data.error || 'Credenciales inválidas.' };
             }
-        } catch {
-            setError('No se pudo conectar con el servidor.');
-            setUser(null);
-            setIsAuthenticated(false);
-            return { success: false, error: 'No se pudo conectar con el servidor.' };
-        } finally {
+        } catch (err) {
+            setError('Error de conexión con el servidor.');
             setLoading(false);
+            return { success: false, error: 'Error de conexión con el servidor.' };
         }
     };
 
-    // Registro
     const register = async (name, email, password) => {
         setLoading(true);
         setError(null);
@@ -60,106 +57,124 @@ export const AuthProvider = ({ children }) => {
             });
             const data = await response.json();
             if (response.ok) {
-                return { success: true };
+                return login(email, password);
             } else {
-                setError(data.email ? `Email: ${data.email[0]}` : (data.detail || 'Error desconocido al registrar.'));
-                return { success: false, error: data.email ? `Email: ${data.email[0]}` : (data.detail || 'Error desconocido al registrar.') };
+                setError(data.email ? 'El correo ya existe.' : data.error || 'Error de registro.');
+                setLoading(false);
+                return { success: false, error: data.email ? 'El correo ya existe.' : data.error || 'Error de registro.' };
             }
-        } catch {
-            setError('No se pudo conectar con el servidor.');
-            return { success: false, error: 'No se pudo conectar con el servidor.' };
-        } finally {
+        } catch (err) {
+            setError('Error de conexión con el servidor.');
             setLoading(false);
+            return { success: false, error: 'Error de conexión con el servidor.' };
         }
     };
 
-    // Logout
     const logout = () => {
         localStorage.removeItem('token');
-        setUser(null);
+        setToken(null);
         setIsAuthenticated(false);
+        setUser(null);
+        setError(null);
     };
 
-    // Crear tablero y columnas asociadas
-    const createBoard = async (boardData) => {
-        const token = localStorage.getItem('token');
-        if (!token) return { success: false, error: 'No autenticado. Por favor, inicia sesión.' };
+    const createBoard = async (boardName, columns) => {
         setLoading(true);
         setError(null);
+
+        if (!user || !user.id || !token) {
+            const errMsg = 'Error de autenticación: Los datos del usuario no están disponibles.';
+            setError(errMsg);
+            setLoading(false);
+            return { success: false, error: errMsg };
+        }
+
         try {
-            // 1. Crear el board (title y user)
-            const userId = user?.id;
-            const response = await fetch(`${API_BASE_URL}/boards/`, {
+            const boardResponse = await fetch(`${API_BASE_URL}/boards/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Token ${token}`
                 },
-                body: JSON.stringify({ title: boardData.name, user: userId })
+                body: JSON.stringify({
+                    title: boardName,
+                    user: user.id,
+                    description: ''
+                })
             });
-            const board = await response.json();
-            if (!response.ok || !board.id) {
-                setError(board.detail || 'Error al crear el tablero. Verifica los datos.');
-                return { success: false, error: board.detail || 'Error al crear el tablero. Verifica los datos.' };
+
+            if (!boardResponse.ok) {
+                const errorData = await boardResponse.json();
+                let apiError = 'Fallo al crear el tablero.';
+
+                if (errorData.user && Array.isArray(errorData.user)) {
+                    apiError = `Error en el campo 'user': ${errorData.user.join(', ')}`;
+                } else if (errorData.detail) {
+                    apiError = errorData.detail;
+                } else if (errorData.title) {
+                    apiError = `Error en el campo 'title': ${errorData.title.join(', ')}`;
+                } else if (errorData.description) {
+                    apiError = `Error en el campo 'description': ${errorData.description.join(', ')}`;
+                }
+
+                throw new Error(apiError);
             }
 
-            // 2. Crear las columnas asociadas (title)
-            let columnsCreated = [];
-            for (let i = 0; i < boardData.columns.length; i++) {
-                const col = boardData.columns[i];
-                const colRes = await fetch(`${API_BASE_URL}/boards/${board.id}/columns/`, {
+            const board = await boardResponse.json();
+
+            const columnRequests = columns.map((title, index) =>
+                fetch(`${API_BASE_URL}/boards/${board.id}/columns/`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Token ${token}`
                     },
-                    body: JSON.stringify({ title: col.name, position: i, board: board.id })
-                });
-                const colData = await colRes.json();
-                if (colRes.ok && colData.id) {
-                    columnsCreated.push(colData);
-                }
-            }
+                    body: JSON.stringify({ title, position: index, board: board.id })
+                })
+            );
+            await Promise.all(columnRequests);
 
             setLoading(false);
-            return { success: true, board, columns: columnsCreated };
-        } catch {
-            setError('No se pudo conectar con el servidor.');
+            return { success: true, board };
+        } catch (err) {
+            setError('No se pudo crear el tablero. Detalles: ' + err.message);
             setLoading(false);
-            return { success: false, error: 'No se pudo conectar con el servidor.' };
+            return { success: false, error: 'No se pudo crear el tablero. ' + err.message };
         }
     };
 
-    // Al cargar, intenta recuperar usuario si hay token 
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (token) {
+        const storedToken = localStorage.getItem('token');
+        if (storedToken) {
+            setToken(storedToken);
             setIsAuthenticated(true);
-            // Fetch datos completos del usuario
             fetch(`${API_BASE_URL}/users/me/`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Token ${token}`
+                    'Authorization': `Token ${storedToken}`
                 }
             })
-            .then(res => res.json())
-            .then(data => {
-                if (!data.error) {
-                    setUser({
-                        id: data.id,
-                        name: data.name,
-                        email: data.email,
-                        registration_date: data.registration_date || data.date_joined,
-                        last_login: data.last_login
-                    });
-                }
-            });
+                .then(res => res.json())
+                .then(data => {
+                    if (!data.error) {
+                        setUser({
+                            id: data.id,
+                            name: data.name,
+                            email: data.email,
+                            registration_date: data.registration_date || data.date_joined,
+                            last_login: data.last_login
+                        });
+                    } else {
+                        logout();
+                    }
+                })
+                .catch(() => logout());
         }
     }, []);
 
     return (
-        <AuthContext.Provider value={{ isAuthenticated, user, login, register, logout, createBoard, loading, error }}>
+        <AuthContext.Provider value={{ isAuthenticated, user, token, login, register, logout, createBoard, loading, error }}>
             {children}
         </AuthContext.Provider>
     );
