@@ -8,15 +8,9 @@ const Settings = () => {
     useEffect(() => {
         const root = document.documentElement;
         if (isDarkMode) {
-            root.style.setProperty('--color-primary-background', '#181818');
-            root.style.setProperty('--color-surface-background', '#232323');
-            root.style.setProperty('--color-primary-text', '#f5f5f5');
-            root.style.setProperty('--color-secondary-text', '#bdbdbd');
+            root.classList.add('theme-dark');
         } else {
-            root.style.setProperty('--color-primary-background', '#F9F9F9');
-            root.style.setProperty('--color-surface-background', '#EBEBEB');
-            root.style.setProperty('--color-primary-text', '#333333');
-            root.style.setProperty('--color-secondary-text', '#777777');
+            root.classList.remove('theme-dark');
         }
     }, [isDarkMode]);
 
