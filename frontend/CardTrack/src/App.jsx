@@ -9,7 +9,6 @@ import Profile from './components/Profile';
 import Settings from './components/Settings';
 import { AuthProvider } from './AuthContext.jsx';
 import { useAuth } from './useAuth.js';
-import { COLORS } from './utils/styles';
 
 const AuthenticatedRoutes = () => {
     return (
@@ -29,7 +28,6 @@ const AppRouter = () => {
 
     const appStyle = {
         minHeight: '100vh',
-        backgroundColor: COLORS.PRIMARY_BACKGROUND,
     };
 
     if (authLoading) {
