@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext, useMemo } from 'react';
+import React, { useEffect, useState, useContext, useMemo, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { AuthContext } from '../AuthContext.jsx';
 
@@ -40,6 +40,39 @@ const BoardEditor = () => {
   // Estado del modal para añadir tarea
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [taskForm, setTaskForm] = useState({ columnId: '', title: '', description: '' });
+
+  // Sincronizar altura de cabeceras de columnas para que todas igualen a la más alta
+  const headerRefs = useRef(new Map());
+  const [maxHeaderHeight, setMaxHeaderHeight] = useState(0);
+
+  const recalcHeaderHeights = useCallback(() => {
+    if (!columns || !columns.length) {
+      setMaxHeaderHeight(0);
+      return;
+    }
+    let max = 0;
+    columns.forEach((c) => {
+      const el = headerRefs.current.get(c.id);
+      if (el) {
+        const prev = el.style.height;
+        el.style.height = 'auto';
+        const h = el.offsetHeight; // altura natural con padding
+        el.style.height = prev;
+        if (h > max) max = h;
+      }
+    });
+    setMaxHeaderHeight(max);
+  }, [columns]);
+
+  useEffect(() => {
+    recalcHeaderHeights();
+  }, [columns, editingColumnId, editingColumnTitle, showTaskModal, recalcHeaderHeights]);
+
+  useEffect(() => {
+    const onResize = () => recalcHeaderHeights();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [recalcHeaderHeights]);
 
   const authHeaders = useMemo(
     () => ({ 'Content-Type': 'application/json', 'Authorization': `Token ${token}` }),
@@ -401,7 +434,11 @@ const BoardEditor = () => {
             onDragOver={onColumnDragOver}
             onDrop={(e) => onColumnDrop(e, column.id)}
           >
-            <div className="column-header">
+            <div
+              className="column-header"
+              ref={(el) => { if (el) headerRefs.current.set(column.id, el); }}
+              style={{ height: maxHeaderHeight ? `${maxHeaderHeight}px` : 'auto' }}
+            >
               {editingColumnId === column.id ? (
                 <>
                   <input
