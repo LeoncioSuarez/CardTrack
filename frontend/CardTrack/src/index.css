@@ -15,6 +15,10 @@
   
   --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.1); 
 
+  --color-border: #e6e6e6;
+  --color-card-background: #ffffff;
+  --color-input-background: #ffffff;
+
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
@@ -36,6 +40,10 @@
   --color-primary-text: #f5f5f5;
   --color-secondary-text: #bdbdbd;
   --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.6);
+
+  --color-border: #3a3a3a;
+  --color-card-background: #242424;
+  --color-input-background: #1f1f1f;
 }
 
 a {
@@ -98,6 +106,12 @@ button:disabled, .main-button:disabled {
   box-sizing: border-box;
 }
 
+.theme-dark .form-input, .theme-dark .auth-input {
+  background-color: var(--color-input-background);
+  color: var(--color-primary-text);
+  border-color: var(--color-border);
+}
+
 .auth-page-container {
   display: flex;
   justify-content: center;
@@ -107,13 +121,19 @@ button:disabled, .main-button:disabled {
 }
 
 .auth-form-card {
-  background-color: var(--color-white);
+  background-color: var(--color-surface-background);
   padding: 30px;
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   width: 100%;
   max-width: 400px;
   text-align: center;
+}
+
+.auth-title {
+  color: var(--color-primary-text);
+  margin: 0 0 10px 0;
+  font-weight: 700;
 }
 
 .auth-toggle-text {
@@ -329,8 +349,8 @@ button:disabled, .main-button:disabled {
   gap: 0;
   padding: 1rem;
   min-height: 70vh;
-  background-color: var(--color-white);
-  border: 1px solid #e6e6e6;
+  background-color: var(--color-surface-background);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
 }
 .board-column {
@@ -338,7 +358,7 @@ button:disabled, .main-button:disabled {
   max-width: 300px;
   padding: 0 12px;
   background-color: transparent;
-  border-right: 1px solid #e6e6e6;
+  border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
   height: fit-content;
@@ -346,7 +366,7 @@ button:disabled, .main-button:disabled {
 .column-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start; /* antes center: ahora alineado arriba para permitir múltiples líneas del título */
   background-color: var(--color-accent-primary);
   color: var(--color-white);
   padding: 10px 12px;
@@ -355,6 +375,16 @@ button:disabled, .main-button:disabled {
   text-transform: uppercase;
   font-weight: 700;
   letter-spacing: 0.5px;
+}
+.column-header h3 {
+  flex: 1 1 auto;
+  margin: 0;
+  overflow: visible; /* permitir que el contenido se muestre en varias líneas */
+  text-overflow: clip;
+  white-space: normal; /* permitir salto de línea */
+}
+.column-header .column-actions {
+  flex: 0 0 auto;
 }
 .tasks-list {
   list-style: none;
@@ -366,7 +396,7 @@ button:disabled, .main-button:disabled {
 .task-item {
   padding: 0.75rem;
   margin: 0.5rem 0;
-  background-color: #fffbe6; /* Nota adhesiva suave */
+  background-color: var(--color-card-background); /* Tarjeta acorde al tema */
   border-left: 6px solid var(--color-accent-secondary);
   border-radius: 4px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
@@ -384,6 +414,7 @@ button:disabled, .main-button:disabled {
 }
 .task-item span {
   flex-grow: 1;
+  color: var(--color-primary-text);
   text-align: left;
   overflow: hidden; /* oculta el exceso de texto */
   text-overflow: ellipsis; /* muestra puntos suspensivos */
@@ -499,13 +530,13 @@ button:disabled, .main-button:disabled {
   z-index: 1000;
 }
 .modal-content {
-  background: var(--color-white);
+  background: var(--color-surface-background);
   width: 520px;
   max-width: calc(100% - 40px);
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-  border: 1px solid #e6e6e6;
+  border: 1px solid var(--color-border);
 }
 .modal-title {
   font-size: 1.2rem;
@@ -519,6 +550,23 @@ button:disabled, .main-button:disabled {
   justify-content: flex-end;
   gap: 10px;
   margin-top: 10px;
+}
+
+/* Tablas (soporte modo claro/oscuro) */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-surface-background);
+  color: var(--color-primary-text);
+}
+th, td {
+  border: 1px solid var(--color-border);
+  padding: 8px 10px;
+  text-align: left;
+}
+thead th {
+  background: var(--color-accent-primary);
+  color: var(--color-white);
 }
 
 /* Ajuste responsive para acciones de tarea en pantallas pequeñas */
