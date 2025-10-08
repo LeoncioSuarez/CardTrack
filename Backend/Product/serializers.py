@@ -7,6 +7,9 @@ class CardSerializer(serializers.ModelSerializer):
     class Meta:
         model = Card
         fields = '__all__'
+        extra_kwargs = {
+            'column': {'required': False}
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -25,6 +28,9 @@ class ColumnSerializer(serializers.ModelSerializer):
     class Meta:
         model = Column
         fields = '__all__'
+        extra_kwargs = {
+            'board': {'read_only': True}
+        }
 
 
 class BoardSerializer(serializers.ModelSerializer):
