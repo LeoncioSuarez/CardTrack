@@ -23,17 +23,14 @@ class UserAuthTests(TestCase):
         res = self.client.post("/api/users/register/", payload, format="json")
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
 
-        # No debe devolver el campo password
         self.assertNotIn("password", res.data)
         self.assertIn("id", res.data)
         self.assertEqual(res.data["email"], payload["email"])
 
-        # La contraseña debe estar hasheada en BD
         user = User.objects.get(email=payload["email"])
         self.assertTrue(check_password("s3cret!", user.password_hash))
 
     def test_login_success_and_me(self):
-        # Primero, registrar usuario
         payload = {
             "name": "Bob",
             "email": "bob@example.com",
@@ -52,7 +49,7 @@ class UserAuthTests(TestCase):
         self.assertIn("token", login_res.data)
         token = login_res.data["token"]
 
-        # 'me' requiere el token en el header Authorization
+
         me_res = self.client.get(
             "/api/users/me/",
             HTTP_AUTHORIZATION=f"Token {token}",
@@ -60,12 +57,12 @@ class UserAuthTests(TestCase):
         self.assertEqual(me_res.status_code, status.HTTP_200_OK)
         self.assertEqual(me_res.data["email"], payload["email"])
 
-        # last_login debe haberse actualizado en el login
+
         user = User.objects.get(email=payload["email"])
         self.assertIsNotNone(user.last_login)
 
     def test_login_wrong_password(self):
-        # Registrar
+
         payload = {
             "name": "Eve",
             "email": "eve@example.com",
@@ -74,7 +71,7 @@ class UserAuthTests(TestCase):
         res = self.client.post("/api/users/register/", payload, format="json")
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
 
-        # Intentar login con contraseña incorrecta
+
         bad_login_res = self.client.post(
             "/api/users/login/",
             {"email": payload["email"], "password": "badpass"},
@@ -95,7 +92,7 @@ class BoardColumnCardTests(TestCase):
 
     def setUp(self):
         self.client = APIClient()
-        # Crear usuario base para asociar board
+
         self.user = User.objects.create(
             name="Owner",
             email="owner@example.com",
@@ -122,7 +119,7 @@ class BoardColumnCardTests(TestCase):
         self.assertEqual(board_res.status_code, status.HTTP_201_CREATED)
         board_id = board_res.data["id"]
 
-        # Crear columnas con posiciones desordenadas
+
         col2 = self.client.post(
             f"/api/boards/{board_id}/columns/",
             {"title": "Doing", "position": 2},
@@ -136,14 +133,14 @@ class BoardColumnCardTests(TestCase):
         )
         self.assertEqual(col1.status_code, status.HTTP_201_CREATED)
 
-        # Listar columnas debe venir ordenado por position asc
+
         cols = self.client.get(f"/api/boards/{board_id}/columns/")
         self.assertEqual(cols.status_code, status.HTTP_200_OK)
         self.assertGreaterEqual(len(cols.data), 2)
         self.assertLessEqual(cols.data[0]["position"], cols.data[1]["position"])
 
     def test_nested_cards_crud_and_ordering_and_scoping(self):
-        # Setup: board y columna
+
         board = self.client.post(
             "/api/boards/",
             {"title": "Proyecto", "description": "Cards", "user": self.user.id},
@@ -162,7 +159,6 @@ class BoardColumnCardTests(TestCase):
             format="json",
         ).data
 
-        # Crear cards en A con posiciones 3 y 1 (desordenadas), y una en B
         c3 = self.client.post(
             f"/api/boards/{board_id}/columns/{col_a['id']}/cards/",
             {"title": "Task 3", "position": 3},
@@ -184,7 +180,7 @@ class BoardColumnCardTests(TestCase):
         )
         self.assertEqual(cb.status_code, status.HTTP_201_CREATED)
 
-        # Listar cards de col_a debe estar ordenado y no incluir las de col_b
+
         list_a = self.client.get(
             f"/api/boards/{board_id}/columns/{col_a['id']}/cards/"
         )
@@ -193,7 +189,7 @@ class BoardColumnCardTests(TestCase):
         self.assertEqual(list_a.data[0]["title"], "Task 1")
         self.assertEqual(list_a.data[1]["title"], "Task 3")
 
-        # Listar cards de col_b debe devolver solo 1
+
         list_b = self.client.get(
             f"/api/boards/{board_id}/columns/{col_b['id']}/cards/"
         )

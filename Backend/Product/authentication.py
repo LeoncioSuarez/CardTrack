@@ -16,7 +16,7 @@ class FakeTokenAuthentication(BaseAuthentication):
     def authenticate(self, request):
         auth_header = request.headers.get('Authorization')
         if not auth_header:
-            # No intentar autenticar si no hay header; deja que otras autenticaciones manejen
+
             return None
 
         parts = auth_header.split()
@@ -36,5 +36,5 @@ class FakeTokenAuthentication(BaseAuthentication):
         except User.DoesNotExist:
             raise AuthenticationFailed('User not found.')
 
-        # DRF asignará request.user al primer elemento retornado
+
         return (user, None)
