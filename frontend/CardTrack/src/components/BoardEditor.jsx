@@ -1,47 +1,36 @@
 import React, { useEffect, useState, useContext, useMemo, useRef, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../AuthContext.jsx';
 
 const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
-/*
-  Editor de Tablero Kanban
-  - Carga columnas con sus tarjetas
-  - Añadir/renombrar/eliminar tareas y columnas
-  - Arrastrar y soltar tareas entre columnas y reordenarlas
-  - Arrastrar y reordenar columnas
-  - Al eliminar una columna, sus tareas se mueven a la columna más cercana
-  Cambios solicitados:
-  - Quitar formularios en las columnas y el bloque lateral para añadir columna
-  - Mantener botón superior "+ Añadir columna"
-  - Añadir botón superior "+ Añadir tarea" que abre un formulario modal (elegir columna, nombre y descripción)
-  Nota: Nombres de variables/funciones en inglés, texto visible y comentarios en español
-*/
-
 const BoardEditor = () => {
   const { boardId } = useParams();
-  const { token } = useContext(AuthContext);
+  const { token, user } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const [board, setBoard] = useState(null);
-  const [columns, setColumns] = useState([]); // cada columna incluye cards
+  const [columns, setColumns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Estado de edición de nombre de columna
   const [editingColumnId, setEditingColumnId] = useState(null);
   const [editingColumnTitle, setEditingColumnTitle] = useState('');
+  const [editingColumnColor, setEditingColumnColor] = useState('#007ACF');
 
-  // Estado de arrastre de columnas
   const [draggingColumnId, setDraggingColumnId] = useState(null);
 
-  // Estado de arrastre de tareas
-  const [draggingCard, setDraggingCard] = useState(null); // { cardId, fromColumnId }
+  const [draggingCard, setDraggingCard] = useState(null);
 
-  // Estado del modal para añadir tarea
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [taskForm, setTaskForm] = useState({ columnId: '', title: '', description: '' });
 
-  // Sincronizar altura de cabeceras de columnas para que todas igualen a la más alta
+  const [showAddColumnModal, setShowAddColumnModal] = useState(false);
+  const [newColumn, setNewColumn] = useState({ title: '', color: '#007ACF' });
+
+  const [showUsersModal, setShowUsersModal] = useState(false);
+
   const headerRefs = useRef(new Map());
   const [maxHeaderHeight, setMaxHeaderHeight] = useState(0);
 
@@ -56,7 +45,7 @@ const BoardEditor = () => {
       if (el) {
         const prev = el.style.height;
         el.style.height = 'auto';
-        const h = el.offsetHeight; // altura natural con padding
+        const h = el.offsetHeight;
         el.style.height = prev;
         if (h > max) max = h;
       }
@@ -66,7 +55,7 @@ const BoardEditor = () => {
 
   useEffect(() => {
     recalcHeaderHeights();
-  }, [columns, editingColumnId, editingColumnTitle, showTaskModal, recalcHeaderHeights]);
+  }, [columns, editingColumnId, editingColumnTitle, showTaskModal, showAddColumnModal, recalcHeaderHeights]);
 
   useEffect(() => {
     const onResize = () => recalcHeaderHeights();
@@ -79,7 +68,6 @@ const BoardEditor = () => {
     [token]
   );
 
-  // Utilidad para peticiones GET
   const fetchJson = async (url) => {
     const res = await fetch(url, { headers: authHeaders });
     if (!res.ok) {
@@ -98,7 +86,6 @@ const BoardEditor = () => {
         fetchJson(`${API_BASE_URL}/boards/${boardId}/columns/`),
       ]);
       setBoard(boardData);
-      // Normalizar orden por position
       const sortedCols = [...columnsData].sort((a, b) => a.position - b.position)
         .map(col => ({ ...col, cards: (col.cards || []).sort((a, b) => a.position - b.position) }));
       setColumns(sortedCols);
@@ -112,16 +99,14 @@ const BoardEditor = () => {
   useEffect(() => {
     if (!token || !boardId) return;
     loadBoardAndColumns();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardId, token]);
 
-  // Helpers API Columns
-  const createColumn = async (title) => {
-    const position = columns.length; // al final
+  const createColumn = async (title, color) => {
+    const position = columns.length;
     const res = await fetch(`${API_BASE_URL}/boards/${boardId}/columns/`, {
       method: 'POST',
       headers: authHeaders,
-      body: JSON.stringify({ title, position }),
+      body: JSON.stringify({ title, position, color }),
     });
     if (!res.ok) throw new Error('No se pudo crear la columna');
     await loadBoardAndColumns();
@@ -144,7 +129,6 @@ const BoardEditor = () => {
     if (!res.ok && res.status !== 204) throw new Error('No se pudo eliminar la columna');
   };
 
-  // Helpers API Cards
   const createCard = async (columnId, title, description, position) => {
     const res = await fetch(`${API_BASE_URL}/boards/${boardId}/columns/${columnId}/cards/`, {
       method: 'POST',
@@ -155,7 +139,6 @@ const BoardEditor = () => {
   };
 
   const updateCard = async (columnId, cardId, payload) => {
-    // Importante: el endpoint está anidado por columna actual de la tarjeta
     const res = await fetch(`${API_BASE_URL}/boards/${boardId}/columns/${columnId}/cards/${cardId}/`, {
       method: 'PATCH',
       headers: authHeaders,
@@ -172,16 +155,19 @@ const BoardEditor = () => {
     if (!res.ok && res.status !== 204) throw new Error('No se pudo eliminar la tarea');
   };
 
-  // Acciones de UI/Negocio
-  const handleAddColumn = async () => {
-    const title = window.prompt('Nombre de la nueva columna:');
+  const handleAddColumn = () => {
+    setNewColumn({ title: '', color: '#007ACF' });
+    setShowAddColumnModal(true);
+  };
+
+  const submitAddColumn = async () => {
+    const title = newColumn.title.trim();
     if (!title) return;
     try {
-      await createColumn(title.trim());
+      await createColumn(title, newColumn.color);
+      setShowAddColumnModal(false);
     } catch (e) {
       alert(e.message);
-    } finally {
-      await loadBoardAndColumns();
     }
   };
 
@@ -218,13 +204,14 @@ const BoardEditor = () => {
   const startEditColumn = (column) => {
     setEditingColumnId(column.id);
     setEditingColumnTitle(column.title);
+    setEditingColumnColor(column.color || '#007ACF');
   };
 
   const confirmEditColumn = async (column) => {
     const title = editingColumnTitle.trim();
     if (!title) return setEditingColumnId(null);
     try {
-      await updateColumn(column.id, { title });
+      await updateColumn(column.id, { title, color: editingColumnColor });
       setEditingColumnId(null);
       await loadBoardAndColumns();
     } catch (e) {
@@ -233,7 +220,6 @@ const BoardEditor = () => {
   };
 
   const handleDeleteColumn = async (column) => {
-    // Al eliminar, mover sus tareas a la columna más cercana
     if (!window.confirm(`¿Eliminar la columna "${column.title}"? Sus tareas serán movidas a la columna más cercana.`)) return;
     try {
       const sorted = [...columns].sort((a, b) => a.position - b.position);
@@ -242,7 +228,6 @@ const BoardEditor = () => {
 
       if (target) {
         const targetCardsCount = (target.cards || []).length;
-        // Mover tareas al final de la columna destino, respetando orden
         const moves = (column.cards || []).sort((a, b) => a.position - b.position)
           .map((card, i) => updateCard(column.id, card.id, { column: target.id, position: targetCardsCount + i }));
         await Promise.all(moves);
@@ -257,9 +242,8 @@ const BoardEditor = () => {
   };
 
   const handleEditTask = async (column, card) => {
-    // Edición simple con prompt (rápido de usar)
     const newTitle = window.prompt('Nuevo nombre de la tarea:', card.title);
-    if (newTitle === null) return; // cancelado
+    if (newTitle === null) return;
     const newDescription = window.prompt('Nueva descripción (opcional):', card.description || '');
     try {
       await updateCard(column.id, card.id, { title: newTitle.trim(), description: (newDescription || '').trim() });
@@ -273,7 +257,6 @@ const BoardEditor = () => {
     if (!window.confirm(`¿Eliminar la tarea "${card.title}"?`)) return;
     try {
       await deleteCard(column.id, card.id);
-      // Recalcular posiciones restantes en esa columna
       const col = columns.find(c => c.id === column.id);
       if (col) {
         const remaining = (col.cards || []).filter(c => c.id !== card.id).sort((a, b) => a.position - b.position);
@@ -286,7 +269,6 @@ const BoardEditor = () => {
     }
   };
 
-  // Drag & Drop de columnas
   const onColumnDragStart = (e, columnId) => {
     setDraggingColumnId(columnId);
     e.dataTransfer.setData('text/column-id', String(columnId));
@@ -294,7 +276,7 @@ const BoardEditor = () => {
   };
 
   const onColumnDragOver = (e) => {
-    e.preventDefault(); // permitir drop
+    e.preventDefault();
   };
 
   const onColumnDrop = async (e, targetColumnId) => {
@@ -310,11 +292,9 @@ const BoardEditor = () => {
     const moved = current.splice(fromIndex, 1)[0];
     current.splice(toIndex, 0, moved);
 
-    // Optimismo local
     setColumns(current.map((c, idx) => ({ ...c, position: idx })));
 
     try {
-      // Persistir nuevas posiciones
       await Promise.all(current.map((c, idx) => updateColumn(c.id, { position: idx })));
     } catch (e2) {
       alert(e2.message);
@@ -324,7 +304,6 @@ const BoardEditor = () => {
     }
   };
 
-  // Drag & Drop de tareas
   const onCardDragStart = (e, card, fromColumnId) => {
     setDraggingCard({ cardId: card.id, fromColumnId });
     e.dataTransfer.setData('application/x-card', JSON.stringify({ cardId: card.id, fromColumnId }));
@@ -343,7 +322,7 @@ const BoardEditor = () => {
 
     const sourceColumnId = data.fromColumnId;
     const targetColumnId = targetColumn.id;
-    const targetIndex = (targetColumn.cards || []).length; // al final
+    const targetIndex = (targetColumn.cards || []).length;
 
     await moveCard(sourceColumnId, data.cardId, targetColumnId, targetIndex);
   };
@@ -356,7 +335,6 @@ const BoardEditor = () => {
     const sourceColumnId = data.fromColumnId;
     const targetColumnId = targetColumn.id;
 
-    // Índice del target en su columna
     const targetIndex = (targetColumn.cards || []).sort((a, b) => a.position - b.position)
       .findIndex(c => c.id === targetCard.id);
     const insertIndex = Math.max(0, targetIndex);
@@ -367,7 +345,6 @@ const BoardEditor = () => {
   const moveCard = async (sourceColumnId, cardId, targetColumnId, targetIndex) => {
     if (!sourceColumnId || !cardId) return;
 
-    // Estado actual
     const currentCols = [...columns].map(c => ({ ...c, cards: [...(c.cards || [])] }));
     const sourceCol = currentCols.find(c => c.id === sourceColumnId);
     const targetCol = currentCols.find(c => c.id === targetColumnId);
@@ -376,25 +353,16 @@ const BoardEditor = () => {
     const card = sourceCol.cards.find(c => c.id === cardId);
     if (!card) return;
 
-    // Quitar de origen
     sourceCol.cards = sourceCol.cards.filter(c => c.id !== cardId);
-    // Insertar en destino
     targetCol.cards.splice(Math.min(targetIndex, targetCol.cards.length), 0, { ...card, column: targetColumnId });
 
-    // Optimismo local: recalcular posiciones
     sourceCol.cards = sourceCol.cards.map((c, i) => ({ ...c, position: i }));
     targetCol.cards = targetCol.cards.map((c, i) => ({ ...c, position: i }));
     setColumns(currentCols);
 
     try {
-      // 1) Actualizar la tarjeta movida (en su endpoint de columna de origen)
       await updateCard(sourceColumnId, cardId, { column: targetColumnId, position: targetIndex });
-
-      // 2) Re-posicionar tarjetas restantes en origen
       await Promise.all(sourceCol.cards.map((c, idx) => updateCard(sourceColumnId, c.id, { position: idx })));
-
-      // 3) Re-posicionar tarjetas en destino (incluida la movida ya está OK por 1),
-      // pero para las otras tarjetas del destino usar su columna actual (targetColumnId)
       await Promise.all(targetCol.cards
         .filter(c => c.id !== cardId)
         .map((c, idx) => updateCard(targetColumnId, c.id, { position: idx })));
@@ -404,6 +372,18 @@ const BoardEditor = () => {
       setDraggingCard(null);
       await loadBoardAndColumns();
     }
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('users')) {
+      setShowUsersModal(true);
+    }
+  }, [location.search]);
+
+  const closeUsersModal = () => {
+    setShowUsersModal(false);
+    navigate(location.pathname, { replace: true });
   };
 
   if (loading) {
@@ -418,10 +398,6 @@ const BoardEditor = () => {
     <div className="board-editor-container">
       <div className="board-editor-title">
         <h1>{board ? board.title : 'Tablero Desconocido'}</h1>
-        <div className="board-editor-actions">
-          <button className="secondary-button" onClick={handleAddColumn}>+ Añadir columna</button>
-          <button className="secondary-button" onClick={openTaskModal}>+ Añadir tarea</button>
-        </div>
       </div>
 
       <div className="board-columns-container">
@@ -429,15 +405,15 @@ const BoardEditor = () => {
           <div
             key={column.id}
             className="board-column"
-            draggable
-            onDragStart={(e) => onColumnDragStart(e, column.id)}
             onDragOver={onColumnDragOver}
             onDrop={(e) => onColumnDrop(e, column.id)}
           >
             <div
               className="column-header"
               ref={(el) => { if (el) headerRefs.current.set(column.id, el); }}
-              style={{ height: maxHeaderHeight ? `${maxHeaderHeight}px` : 'auto' }}
+              style={{ height: maxHeaderHeight ? `${maxHeaderHeight}px` : 'auto', backgroundColor: column.color || 'var(--color-accent-primary)' }}
+              draggable
+              onDragStart={(e) => onColumnDragStart(e, column.id)}
             >
               {editingColumnId === column.id ? (
                 <>
@@ -446,15 +422,23 @@ const BoardEditor = () => {
                     value={editingColumnTitle}
                     onChange={(e) => setEditingColumnTitle(e.target.value)}
                     placeholder="Nombre de columna"
+                    style={{ marginRight: 8 }}
+                  />
+                  <input
+                    type="color"
+                    value={editingColumnColor}
+                    onChange={(e) => setEditingColumnColor(e.target.value)}
+                    title="Color del encabezado"
+                    style={{ width: 44, height: 36, padding: 0, border: 'none', background: 'transparent', cursor: 'pointer', marginRight: 8 }}
                   />
                   <div className="column-actions">
-                    <button className="secondary-button" onClick={() => confirmEditColumn(column)}>Guardar</button>
-                    <button className="secondary-button" onClick={() => setEditingColumnId(null)}>Cancelar</button>
+                    <button className="secondary-button" style={{ backgroundColor: '#ffffff', color: 'var(--color-accent-primary)', borderColor: '#ffffff' }} onClick={() => confirmEditColumn(column)}>Guardar</button>
+                    <button className="secondary-button" style={{ backgroundColor: '#ffffff', color: 'var(--color-accent-primary)', borderColor: '#ffffff' }} onClick={() => setEditingColumnId(null)}>Cancelar</button>
                   </div>
                 </>
               ) : (
                 <>
-                  <h3 title={column.title}>{column.title}</h3>
+                  <h3 title={column.title} style={{ wordBreak: 'break-word' }}>{column.title}</h3>
                   <div className="column-actions">
                     <button className="secondary-button" onClick={() => startEditColumn(column)}>Renombrar</button>
                     <button className="danger-button" onClick={() => handleDeleteColumn(column)}>Eliminar</button>
@@ -490,7 +474,42 @@ const BoardEditor = () => {
         ))}
       </div>
 
-      {/* Modal para añadir tarea */}
+      <div className="board-footer-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, paddingTop: 10 }}>
+        <button className="secondary-button" onClick={handleAddColumn}>+ Añadir columna</button>
+        <button className="secondary-button" onClick={openTaskModal}>+ Añadir tarea</button>
+      </div>
+
+      {showAddColumnModal && (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <div className="modal-content">
+            <div className="modal-title">Añadir columna</div>
+            <div className="form-row">
+              <label className="form-label">Nombre</label>
+              <input
+                className="form-input"
+                placeholder="Ej: En progreso"
+                value={newColumn.title}
+                onChange={(e) => setNewColumn(prev => ({ ...prev, title: e.target.value }))}
+              />
+            </div>
+            <div className="form-row">
+              <label className="form-label">Color del encabezado</label>
+              <input
+                type="color"
+                value={newColumn.color}
+                onChange={(e) => setNewColumn(prev => ({ ...prev, color: e.target.value }))}
+                title="Color del encabezado"
+                style={{ width: 50, height: 36, padding: 0, border: 'none', background: 'transparent', cursor: 'pointer' }}
+              />
+            </div>
+            <div className="modal-actions">
+              <button className="secondary-button" onClick={() => setShowAddColumnModal(false)}>Cancelar</button>
+              <button className="main-button" onClick={submitAddColumn} disabled={!newColumn.title.trim()}>Crear columna</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showTaskModal && (
         <div className="modal-overlay" role="dialog" aria-modal="true">
           <div className="modal-content">
@@ -529,6 +548,26 @@ const BoardEditor = () => {
             <div className="modal-actions">
               <button className="secondary-button" onClick={closeTaskModal}>Cancelar</button>
               <button className="main-button" onClick={submitTaskModal} disabled={!taskForm.title.trim()}>Crear tarea</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showUsersModal && (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <div className="modal-content">
+            <div className="modal-title">Usuarios autorizados</div>
+            <div className="main-card" style={{ padding: 12 }}>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                <li style={{ padding: '6px 0', borderBottom: '1px solid var(--color-border)' }}>
+                  <strong>{user?.name || user?.email || 'Usuario actual'}</strong>
+                  <div style={{ color: 'var(--color-secondary-text)', fontSize: '0.9em' }}>{user?.email}</div>
+                  <div style={{ marginTop: 4 }}><span className="column-tag">Propietario</span></div>
+                </li>
+              </ul>
+            </div>
+            <div className="modal-actions">
+              <button className="secondary-button" onClick={closeUsersModal}>Cerrar</button>
             </div>
           </div>
         </div>
