@@ -35,6 +35,7 @@ class Column(models.Model):
     board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name="columns")
     title = models.CharField(max_length=100)
     position = models.IntegerField(default=0)  
+    color = models.CharField(max_length=7, default='#007ACF')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
