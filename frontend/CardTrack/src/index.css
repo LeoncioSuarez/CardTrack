@@ -19,7 +19,7 @@
   --color-card-background: #ffffff;
   --color-input-background: #ffffff;
 
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Roboto', system-ui, -apple-system, 'Segoe UI', Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
@@ -59,6 +59,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  font-family: 'Roboto', system-ui, -apple-system, 'Segoe UI', Avenir, Helvetica, Arial, sans-serif;
 }
 
 #root { 
@@ -73,6 +74,11 @@ h1 {
   font-size: 3.2em;
   line-height: 1.1;
   color: var(--color-accent-primary);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Poppins', 'Roboto', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  font-weight: 700;
 }
 
 button, .main-button {
@@ -382,6 +388,7 @@ button:disabled, .main-button:disabled {
   overflow: visible; /* permitir que el contenido se muestre en varias líneas */
   text-overflow: clip;
   white-space: normal; /* permitir salto de línea */
+
 }
 .column-header .column-actions {
   flex: 0 0 auto;
@@ -567,6 +574,7 @@ th, td {
 thead th {
   background: var(--color-accent-primary);
   color: var(--color-white);
+  text-transform: capitalize;
 }
 
 /* Ajuste responsive para acciones de tarea en pantallas pequeñas */
