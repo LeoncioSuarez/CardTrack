@@ -112,4 +112,3 @@ class CardViewSet(viewsets.ModelViewSet):
         except Column.DoesNotExist:
             raise NotFound('Columna no encontrada.')
         serializer.save(column=column)
-
