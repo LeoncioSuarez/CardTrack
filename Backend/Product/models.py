@@ -37,7 +37,6 @@ class Column(models.Model):
     position = models.IntegerField(default=0)  
     color = models.CharField(max_length=7, default='#007ACF')
     created_at = models.DateTimeField(auto_now_add=True)
-    color = models.CharField(default="#007ACF", max_length=7)
 
     class Meta:
         ordering = ["position"] 

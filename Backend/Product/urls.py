@@ -2,6 +2,9 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_nested import routers
+from rest_framework.response import Response
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
 from .views import UserViewSet, BoardViewSet, ColumnViewSet, CardViewSet
 
 # Router principal
@@ -17,9 +20,14 @@ boards_router.register(r'columns', ColumnViewSet, basename='board-columns')
 columns_router = routers.NestedDefaultRouter(boards_router, r'columns', lookup='column')
 columns_router.register(r'cards', CardViewSet, basename='column-cards')
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def healthz(_request):
+    return Response({'status': 'ok'})
+
 urlpatterns = [
+    path('healthz/', healthz, name='healthz'),
     path('', include(router.urls)),
     path('', include(boards_router.urls)),
     path('', include(columns_router.urls)),
 ]
-
