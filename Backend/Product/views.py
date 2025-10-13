@@ -36,10 +36,8 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response({"error": "Usuario no encontrado"}, status=status.HTTP_404_NOT_FOUND)
 
         if check_password(password, user.password_hash):
-            # Opcional: actualizar last_login
             user.last_login = timezone.now()
             user.save()
-            # Simula un token para el frontend
             token = f"fake-token-{user.email}"
             return Response({
                 "message": "Login exitoso",
@@ -56,11 +54,9 @@ class BoardViewSet(viewsets.ModelViewSet):
     serializer_class = BoardSerializer
 
     def get_queryset(self):
-        # Solo tableros del usuario autenticado
         return Board.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        # Forzar el owner al usuario autenticado
         serializer.save(user=self.request.user)
 
 class ColumnViewSet(viewsets.ModelViewSet):
@@ -71,15 +67,12 @@ class ColumnViewSet(viewsets.ModelViewSet):
         if board_id:
             # Columnas dentro de un board del usuario
             return Column.objects.filter(board_id=board_id, board__user=self.request.user)
-        # Si no hay board en la ruta, devolver solo columnas de boards del usuario
         return Column.objects.filter(board__user=self.request.user)
 
     def perform_create(self, serializer):
         board_id = self.kwargs.get('board_pk')
         if not board_id:
-            # En esta API las columnas deben crearse de forma anidada bajo un board
             raise NotFound('Board no especificado.')
-        # Validar que el board pertenece al usuario autenticado
         try:
             board = Board.objects.get(id=board_id, user=self.request.user)
         except Board.DoesNotExist:
@@ -95,7 +88,6 @@ class CardViewSet(viewsets.ModelViewSet):
         column_id = self.kwargs.get('column_pk')
         if not board_id or not column_id:
             return Card.objects.none()
-        # Cartas solo de columnas que pertenecen a un board del usuario
         return Card.objects.filter(
             column__id=column_id,
             column__board__id=board_id,
@@ -112,4 +104,3 @@ class CardViewSet(viewsets.ModelViewSet):
         except Column.DoesNotExist:
             raise NotFound('Columna no encontrada.')
         serializer.save(column=column)
-
