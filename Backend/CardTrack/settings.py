@@ -155,6 +155,10 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Media files (user-uploaded)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 # CORS configuration (env-driven with safe defaults for dev)
 _env_cors_origins = _get_list_from_env('CORS_ALLOWED_ORIGINS')
 CORS_ALLOWED_ORIGINS = _env_cors_origins if _env_cors_origins is not None else [

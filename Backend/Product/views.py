@@ -5,8 +5,11 @@ from rest_framework import status, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.exceptions import NotFound
 from django.contrib.auth.hashers import check_password
-from .models import User, Board, Column, Card
-from .serializers import UserSerializer, BoardSerializer, ColumnSerializer, CardSerializer
+from rest_framework.parsers import MultiPartParser, FormParser
+from .models import User, Board, Column, Card, CarouselImage
+from .serializers import UserSerializer, BoardSerializer, ColumnSerializer, CardSerializer, CarouselImageSerializer
+from .models import Release
+from .serializers import ReleaseSerializer
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -114,3 +117,28 @@ class CardViewSet(viewsets.ModelViewSet):
         except Column.DoesNotExist:
             raise NotFound('Columna no encontrada.')
         serializer.save(column=column)
+
+
+class CarouselImageViewSet(viewsets.ModelViewSet):
+    """ViewSet para administrar imágenes del carousel.
+
+    - GET list/ retrieve: público
+    - POST/PUT/PATCH/DELETE: requiere autenticación
+    Accepta multipart uploads.
+    """
+    queryset = CarouselImage.objects.all().order_by('position', '-created_at')
+    serializer_class = CarouselImageSerializer
+    parser_classes = [MultiPartParser, FormParser]
+
+    def get_permissions(self):
+        # lectura pública, escritura autenticada
+        if self.action in ('list', 'retrieve'):
+            return [AllowAny()]
+        return [IsAuthenticated()]
+
+
+class ReleaseViewSet(viewsets.ModelViewSet):
+    """Simple CRUD for Release changelogs."""
+    queryset = Release.objects.all().order_by('-release_date')
+    serializer_class = ReleaseSerializer
+    permission_classes = [IsAuthenticated]

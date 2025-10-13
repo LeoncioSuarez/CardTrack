@@ -6,6 +6,8 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from .views import UserViewSet, BoardViewSet, ColumnViewSet, CardViewSet
+from .views import CarouselImageViewSet
+from .views import ReleaseViewSet
 
 # Router principal
 router = DefaultRouter()
@@ -19,6 +21,8 @@ boards_router.register(r'columns', ColumnViewSet, basename='board-columns')
 # Router anidado: cartas dentro de una columna
 columns_router = routers.NestedDefaultRouter(boards_router, r'columns', lookup='column')
 columns_router.register(r'cards', CardViewSet, basename='column-cards')
+router.register(r'carousel-images', CarouselImageViewSet)
+router.register(r'releases', ReleaseViewSet)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])

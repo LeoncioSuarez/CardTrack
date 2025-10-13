@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
-from .models import User, Board, Column, Card
+from .models import User, Board, Column, Card, CarouselImage
+from .models import Release
 
 
 class CardSerializer(serializers.ModelSerializer):
@@ -57,3 +58,27 @@ class UserSerializer(serializers.ModelSerializer):
         password = validated_data.pop("password")
         validated_data["password_hash"] = make_password(password)
         return super().create(validated_data)
+
+
+class CarouselImageSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CarouselImage
+        fields = ['id', 'image', 'image_url', 'title', 'alt_text', 'caption', 'link_url', 'is_active', 'position', 'created_at']
+        read_only_fields = ['id', 'image_url', 'created_at']
+
+    def get_image_url(self, obj):
+        request = self.context.get('request')
+        if obj.image and request:
+            return request.build_absolute_uri(obj.image.url)
+        if obj.image:
+            return obj.image.url
+        return None
+
+
+class ReleaseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Release
+        fields = ['id', 'release_title', 'release_description', 'release_date']
+        read_only_fields = ['id']
