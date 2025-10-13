@@ -13,23 +13,35 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-BASE_DIR = Path(__file__).resolve().parent.parent  
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 dotenv_path = BASE_DIR / 'credentials.env'
 load_dotenv(dotenv_path, override=True)
 
+
+def _get_list_from_env(name: str):
+    value = os.getenv(name)
+    if not value:
+        return None
+    # Split by comma and strip whitespace
+    return [item.strip() for item in value.split(',') if item.strip()]
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-xl1k&)^2#erz#wmslkqx=myya$bs-usj@&7farpuwanr%hya3('
+SECRET_KEY = os.getenv(
+    'SECRET_KEY',
+    'django-insecure-xl1k&)^2#erz#wmslkqx=myya$bs-usj@&7farpuwanr%hya3('
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'True').lower() in ('1', 'true', 'yes', 'on')
 
-ALLOWED_HOSTS = []
+# Hosts
+_env_allowed_hosts = _get_list_from_env('ALLOWED_HOSTS')
+ALLOWED_HOSTS = _env_allowed_hosts if _env_allowed_hosts is not None else []
 
 
 # Application definition
@@ -46,7 +58,7 @@ INSTALLED_APPS = [
     'Product',
 ]
 
-# Django REST Framework configuration
+# Django REST Framework configuration (kept as-is to avoid behavior changes)
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'Product.authentication.FakeTokenAuthentication',
@@ -143,13 +155,18 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Configuración de CORS
-CORS_ALLOWED_ORIGINS = [
+# Media files (user-uploaded)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# CORS configuration (env-driven with safe defaults for dev)
+_env_cors_origins = _get_list_from_env('CORS_ALLOWED_ORIGINS')
+CORS_ALLOWED_ORIGINS = _env_cors_origins if _env_cors_origins is not None else [
     "http://localhost:5173",
     "http://127.0.0.1:8000",
 ]
 
-# Permitir todas las rutas y credenciales para desarrollo
+# Allow credentials and typical headers/methods for dev
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
     'accept',
@@ -170,3 +187,55 @@ CORS_ALLOW_METHODS = [
     'POST',
     'PUT',
 ]
+
+
+_env_csrf_trusted = _get_list_from_env('CSRF_TRUSTED_ORIGINS')
+CSRF_TRUSTED_ORIGINS = _env_csrf_trusted if _env_csrf_trusted is not None else [
+    "http://localhost:5173",
+    "http://127.0.0.1:8000",
+]
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'simple': {
+            'format': '[{levelname}] {name}: {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'DEBUG' if DEBUG else 'INFO',
+    },
+    'loggers': {
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+    },
+}
+
+
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
+    # Enable HSTS (adjust seconds as needed)
+    SECURE_HSTS_SECONDS = int(os.getenv('SECURE_HSTS_SECONDS', '31536000'))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+    SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'True').lower() in ('1', 'true', 'yes', 'on')
+
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = os.getenv('X_FRAME_OPTIONS', 'DENY')
+    REFERRER_POLICY = os.getenv('REFERRER_POLICY', 'same-origin')

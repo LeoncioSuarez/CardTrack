@@ -5,8 +5,11 @@ from rest_framework import status, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.exceptions import NotFound
 from django.contrib.auth.hashers import check_password
-from .models import User, Board, Column, Card
-from .serializers import UserSerializer, BoardSerializer, ColumnSerializer, CardSerializer
+from rest_framework.parsers import MultiPartParser, FormParser
+from .models import User, Board, Column, Card, CarouselImage
+from .serializers import UserSerializer, BoardSerializer, ColumnSerializer, CardSerializer, CarouselImageSerializer
+from .models import Release
+from .serializers import ReleaseSerializer
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -54,7 +57,12 @@ class BoardViewSet(viewsets.ModelViewSet):
     serializer_class = BoardSerializer
 
     def get_queryset(self):
-        return Board.objects.filter(user=self.request.user)
+        # Optimización para evitar Queries N+1
+        return (
+            Board.objects
+            .filter(user=self.request.user)
+            .prefetch_related('columns__cards')
+        )
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -64,10 +72,11 @@ class ColumnViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         board_id = self.kwargs.get('board_pk')
+        qs = Column.objects.filter(board__user=self.request.user)
         if board_id:
-            # Columnas dentro de un board del usuario
-            return Column.objects.filter(board_id=board_id, board__user=self.request.user)
-        return Column.objects.filter(board__user=self.request.user)
+            qs = qs.filter(board_id=board_id)
+
+        return qs.prefetch_related('cards')
 
     def perform_create(self, serializer):
         board_id = self.kwargs.get('board_pk')
@@ -88,10 +97,14 @@ class CardViewSet(viewsets.ModelViewSet):
         column_id = self.kwargs.get('column_pk')
         if not board_id or not column_id:
             return Card.objects.none()
-        return Card.objects.filter(
-            column__id=column_id,
-            column__board__id=board_id,
-            column__board__user=self.request.user,
+        return (
+            Card.objects
+            .select_related('column', 'column__board')
+            .filter(
+                column__id=column_id,
+                column__board__id=board_id,
+                column__board__user=self.request.user,
+            )
         )
 
     def perform_create(self, serializer):
@@ -104,3 +117,28 @@ class CardViewSet(viewsets.ModelViewSet):
         except Column.DoesNotExist:
             raise NotFound('Columna no encontrada.')
         serializer.save(column=column)
+
+
+class CarouselImageViewSet(viewsets.ModelViewSet):
+    """ViewSet para administrar imágenes del carousel.
+
+    - GET list/ retrieve: público
+    - POST/PUT/PATCH/DELETE: requiere autenticación
+    Accepta multipart uploads.
+    """
+    queryset = CarouselImage.objects.all().order_by('position', '-created_at')
+    serializer_class = CarouselImageSerializer
+    parser_classes = [MultiPartParser, FormParser]
+
+    def get_permissions(self):
+        # lectura pública, escritura autenticada
+        if self.action in ('list', 'retrieve'):
+            return [AllowAny()]
+        return [IsAuthenticated()]
+
+
+class ReleaseViewSet(viewsets.ModelViewSet):
+    """Simple CRUD for Release changelogs."""
+    queryset = Release.objects.all().order_by('-release_date')
+    serializer_class = ReleaseSerializer
+    permission_classes = [IsAuthenticated]

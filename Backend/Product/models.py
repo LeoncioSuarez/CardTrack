@@ -37,7 +37,6 @@ class Column(models.Model):
     position = models.IntegerField(default=0)  
     color = models.CharField(max_length=7, default='#007ACF')
     created_at = models.DateTimeField(auto_now_add=True)
-    color = models.CharField(default="#007ACF", max_length=7)
 
     class Meta:
         ordering = ["position"] 
@@ -67,3 +66,26 @@ class Card(models.Model):
     def __str__(self):
         return f"{self.title} ({self.column.title})"
 
+class Release(models.Model):
+    release_title = models.CharField(max_length=100)
+    release_description = models.TextField(blank=True, null=True)
+    release_date = models.DateTimeField(auto_now_add=True)
+
+
+class CarouselImage(models.Model):
+    image = models.ImageField(upload_to='carousel/')
+    title = models.CharField(max_length=200, blank=True)
+    alt_text = models.CharField(max_length=255, blank=True)
+    caption = models.TextField(blank=True)
+    link_url = models.URLField(blank=True)
+    is_active = models.BooleanField(default=True)
+    position = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["position", "-created_at"]
+        verbose_name = "Carousel Image"
+        verbose_name_plural = "Carousel Images"
+
+    def __str__(self):
+        return self.title or f"CarouselImage #{self.pk}"
