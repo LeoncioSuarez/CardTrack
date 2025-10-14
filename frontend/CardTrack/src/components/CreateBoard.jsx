@@ -79,7 +79,7 @@ const CreateBoard = () => {
                         placeholder="Nombre de la nueva columna (Ej: Revisión)"
                         className="form-input add-column-input"
                     />
-                    <button type="button" onClick={handleAddColumn} className="secondary-button" disabled={!newColumnName.trim()}>
+                    <button type="button" onClick={handleAddColumn} className="main-button" disabled={!newColumnName.trim()}>
                         Añadir
                     </button>
                 </div>
