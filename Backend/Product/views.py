@@ -141,4 +141,4 @@ class ReleaseViewSet(viewsets.ModelViewSet):
     """Simple CRUD for Release changelogs."""
     queryset = Release.objects.all().order_by('-release_date')
     serializer_class = ReleaseSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
