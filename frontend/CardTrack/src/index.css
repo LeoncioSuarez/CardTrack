@@ -696,3 +696,151 @@ thead th {
 .error-message {
     color: var(--color-status-danger);
 }
+
+/* AJUSTES EN index.css */
+
+/* 1. Contenedor Principal (Cambio de Centrado a Flexbox de 2 columnas) */
+.auth-page-container {
+  display: flex; /* <-- Cambio clave */
+  min-height: 100vh;
+  width: 100%;
+  padding: 0; /* Asegurar que no haya padding extra alrededor */
+  margin: 0;
+}
+
+/* 2. Columna Izquierda (Presentación y Carrusel) */
+.auth-presentation-column {
+  flex: 1; /* Ocupa todo el espacio disponible */
+  background-color: var(--color-primary-background); /* Fondo claro o el que desees */
+  padding: 40px 40px 60px 40px; /* mantener separación interior para la presentación, pero no afecta al formulario */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  /* dejar espacio a la derecha para la columna fija del formulario */
+  margin-right: 420px;
+}
+.presentation-title-1 {
+  font-size: 3.5em;
+  margin-bottom: 0.1em;
+  color: var(--color-accent-primary); /* Forzar el azul compartido */
+}
+.presentation-title-2 {
+    font-size: 2em;
+    font-weight: 400;
+    margin-top: 0;
+    margin-bottom: 40px;
+    color: var(--color-secondary-text);
+}
+
+/* 3. Estilos de la Galería */
+.gallery-container {
+  width: 100%;
+  max-width: 920px; /* Aún más grande */
+  height: 560px; /* mayor altura */
+  overflow: hidden;
+  border-radius: 8px;
+  box-shadow: var(--shadow-card);
+  position: relative;
+}
+.gallery-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: opacity 1s ease-in-out; /* Animación de fade */
+    opacity: 1;
+}
+
+.gallery-controls {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.gallery-controls .gallery-prev,
+.gallery-controls .gallery-next {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.gallery-placeholder {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    background-color: var(--color-border);
+    color: var(--color-secondary-text);
+}
+
+/* 4. Columna Derecha (Formulario) */
+.auth-form-column {
+  /* Hacemos la columna del formulario fija al borde derecho y superior */
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 420px;
+  min-width: 320px;
+  height: 100vh;
+  background-color: var(--color-surface-background);
+  display: flex;
+  flex-direction: column; /* permitir centrar verticalmente */
+  justify-content: center; /* centra verticalmente */
+  align-items: center; /* centra horizontalmente la tarjeta */
+  box-shadow: none; /* Quitamos la sombra lateral y usamos border-left */
+  padding: 0; /* Sin padding para que llegue al borde */
+  border-left: 1px solid var(--color-border);
+  overflow: auto; /* permitir scroll interno si la ventana es pequeña */
+  z-index: 20;
+}
+
+/* 5. Ajustar la tarjeta del formulario para el nuevo contenedor */
+.auth-form-card {
+    /* Las propiedades de centrado se trasladaron a .auth-form-column */
+    width: 100%;
+    max-width: 380px;
+  padding: 20px 30px; /* Reducimos un poco el padding interno para acercar al top */
+    box-shadow: none; /* Quitamos la sombra, ya que la tiene la columna */
+  background-color: transparent; /* Fondo transparente para usar el fondo de la columna */
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* 6. Media Query para Móviles */
+@media (max-width: 900px) {
+    .auth-page-container {
+        flex-direction: column; /* Apilamos las columnas en móviles */
+    }
+    .auth-presentation-column {
+    height: auto; /* Ajuste para móviles */
+    padding: 30px 20px;
+    justify-content: flex-start;
+    margin-right: 0; /* quitar espacio cuando el layout apile */
+    }
+    .auth-form-column {
+    position: static; /* volver a flujo normal en móviles */
+    width: 100%;
+    min-width: auto;
+    height: auto;
+    border-left: none;
+    }
+    .presentation-title-1 {
+        font-size: 2em;
+    }
+    .presentation-title-2 {
+        font-size: 1.2em;
+        margin-bottom: 20px;
+    }
+    .gallery-container {
+        display: none; /* Ocultamos la galería en pantallas muy pequeñas */
+    }
+}
