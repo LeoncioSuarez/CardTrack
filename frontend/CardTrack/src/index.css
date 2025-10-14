@@ -1,28 +1,44 @@
 :root {
+  /* Colores base */
   --color-white: #FFFFFF;
   --color-black: #000000;
   
-  --color-primary-background: #F9F9F9; 
-  --color-surface-background: #EBEBEB; 
-  --color-primary-text: #333333;      
-  --color-secondary-text: #777777;     
+  /* Colores de fondo */
+  --color-primary-background: #F0F2F5; /* Un fondo más suave */
+  --color-surface-background: #FFFFFF; /* Superficies claras */
+  --color-card-background: #FFFFFF;
+  --color-input-background: #FFFFFF;
 
-  --color-accent-primary: #007ACF;    
-  --color-accent-secondary: #5CB85C;
+  /* Colores de texto */
+  --color-primary-text: #2C3E50; /* Texto principal más oscuro para mejor contraste */
+  --color-secondary-text: #7F8C8D; /* Texto secundario */
+  --color-tertiary-text: #BDC3C7; /* Texto muy sutil */
 
-  --color-status-danger: #D9534F;     
-  --color-status-warning: #F0AD4E;    
-  
-  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.1); 
+  /* Colores de acento */
+  --color-accent-primary: #3498DB; /* Azul más vibrante */
+  --color-accent-secondary: #2ECC71; /* Verde para éxito/acciones positivas */
+  --color-accent-hover: #2186c4; /* Tono más oscuro para hover */
 
-  --color-border: #e6e6e6;
-  --color-card-background: #ffffff;
-  --color-input-background: #ffffff;
+  /* Colores de estado */
+  --color-status-danger: #E74C3C; /* Rojo para peligro/error */
+  --color-status-warning: #F39C12; /* Naranja para advertencia */
+  --color-status-info: #3498DB; /* Azul para información */
 
-  font-family: 'Roboto', system-ui, -apple-system, 'Segoe UI', Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
+  /* Sombras */
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.08); /* Sombra más suave */
+  --shadow-hover: 0 6px 16px rgba(0, 0, 0, 0.12);
+
+  /* Bordes */
+  --color-border: #E0E0E0; /* Borde más claro */
+  --color-divider: #ECF0F1; /* Divisores sutiles */
+
+  /* Tipografía */
+  font-family: 'Inter', 'Roboto', system-ui, -apple-system, 'Segoe UI', Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.6; 
   font-weight: 400;
+  font-size: 16px;
 
+  /* Configuración global */
   color-scheme: light; 
   color: var(--color-primary-text);
   background-color: var(--color-primary-background);
@@ -31,6 +47,11 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  box-sizing: border-box; 
+}
+
+*, *::before, *::after {
+  box-sizing: inherit; 
 }
 
 /* Tema oscuro: override de variables */
@@ -170,7 +191,7 @@ button:disabled, .main-button:disabled {
   width: auto;
   font-weight: normal;
   transition: all 0.2s;
-  white-space: nowrap; /* evita salto de línea en botones */
+  white-space: nowrap; 
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -185,7 +206,7 @@ button:disabled, .main-button:disabled {
   background-color: var(--color-status-danger);
   color: var(--color-white);
   border: 1px solid var(--color-status-danger);
-  white-space: nowrap; /* evita salto de línea en botones */
+  white-space: nowrap; 
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -200,12 +221,12 @@ button:disabled, .main-button:disabled {
   width: 100%;
 }
 
-/* Asegurar que también funcione con la clase usada en el componente */
 .dashboard-layout {
   display: flex;
   min-height: 100vh;
   width: 100%;
 }
+
 
 .sidebar-menu {
   width: 250px;
@@ -214,13 +235,23 @@ button:disabled, .main-button:disabled {
   color: var(--color-primary-text);
   box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
   padding: 20px 0;
-  min-height: 100vh; /* permite crecer si hay márgenes internos */
+  min-height: 100vh; 
   display: flex;
   flex-direction: column;
+  justify-content: space-between; 
   position: sticky;
   top: 0;
   align-self: flex-start;
   box-sizing: border-box;
+}
+
+.sidebar-logout-button {
+  margin: 20px;
+  width: calc(100% - 40px);
+  margin-top: auto; 
+  position: static;
+  bottom: auto;
+  z-index: auto;
 }
 
 .sidebar-title {
@@ -245,6 +276,7 @@ button:disabled, .main-button:disabled {
   border-bottom: 1px solid var(--color-surface-background);
 }
 
+/* Asegurar que los elementos del menú no se encimen ni cambien el flujo */
 .menu-item {
   display: block;
   padding: 12px 20px;
@@ -254,6 +286,7 @@ button:disabled, .main-button:disabled {
   transition: background-color 0.2s, color 0.2s;
   font-weight: 500;
   cursor: pointer;
+  word-break: break-word; 
 }
 
 .menu-item:hover {
@@ -267,20 +300,14 @@ button:disabled, .main-button:disabled {
   border-radius: 0 5px 5px 0;
 }
 
-.sidebar-logout-button {
-  margin: 20px; 
-  position: static;
-  bottom: auto;
-  z-index: auto;
-  width: calc(100% - 40px);
-}
-
+/* === Contenido principal === */
 .dashboard-content {
   flex-grow: 1;
   padding: 40px;
   overflow-y: auto; 
 }
 
+/* === Tarjetas de tableros === */
 .boards-preview-title {
   margin-bottom: 30px;
 }
@@ -342,23 +369,43 @@ button:disabled, .main-button:disabled {
   margin-bottom: 0 !important; 
 }
 
-.board-editor-container {}
+/* === Editor de tableros: asegurar layout horizontal y scroll suave === */
+.board-editor-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
 .board-editor-title {
   margin-bottom: 30px;
   display: flex;
   align-items: center;
 }
+
+/* Mantengo tu diseño original para columnas, pero reforzando que sea fila */
 .board-columns-container {
-  display: flex;
+  display: flex;                
+  flex-direction: row;          
   align-items: flex-start;
+  gap: 0;                        
   overflow-x: auto;
-  gap: 0;
   padding: 1rem;
   min-height: 70vh;
   background-color: var(--color-surface-background);
   border: 1px solid var(--color-border);
   border-radius: 6px;
+  scrollbar-width: thin;
 }
+.board-columns-container::-webkit-scrollbar {
+  height: 8px;
+}
+.board-columns-container::-webkit-scrollbar-thumb {
+  background-color: #ccc;
+  border-radius: 4px;
+}
+
+
 .board-column {
   min-width: 300px;
   max-width: 300px;
@@ -368,11 +415,14 @@ button:disabled, .main-button:disabled {
   display: flex;
   flex-direction: column;
   height: fit-content;
+  flex-shrink: 0; 
 }
+
+/* header de columna */
 .column-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start; /* antes center: ahora alineado arriba para permitir múltiples líneas del título */
+  align-items: flex-start; 
   background-color: var(--color-accent-primary);
   color: var(--color-white);
   padding: 10px 12px;
@@ -385,14 +435,15 @@ button:disabled, .main-button:disabled {
 .column-header h3 {
   flex: 1 1 auto;
   margin: 0;
-  overflow: visible; /* permitir que el contenido se muestre en varias líneas */
+  overflow: visible;
   text-overflow: clip;
-  white-space: normal; /* permitir salto de línea */
-
+  white-space: normal;
 }
 .column-header .column-actions {
   flex: 0 0 auto;
 }
+
+/* === Tareas === */
 .tasks-list {
   list-style: none;
   padding: 0;
@@ -403,7 +454,7 @@ button:disabled, .main-button:disabled {
 .task-item {
   padding: 0.75rem;
   margin: 0.5rem 0;
-  background-color: var(--color-card-background); /* Tarjeta acorde al tema */
+  background-color: var(--color-card-background);
   border-left: 6px solid var(--color-accent-secondary);
   border-radius: 4px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
@@ -423,11 +474,13 @@ button:disabled, .main-button:disabled {
   flex-grow: 1;
   color: var(--color-primary-text);
   text-align: left;
-  overflow: hidden; /* oculta el exceso de texto */
-  text-overflow: ellipsis; /* muestra puntos suspensivos */
-  white-space: nowrap; /* evita saltos de línea */
-  min-width: 0; /* necesario para ellipsis en flex */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
+
+/* Column add area */
 .add-task-section {
   margin-top: 1rem;
   padding-top: 0.75rem;
@@ -447,8 +500,10 @@ button:disabled, .main-button:disabled {
   justify-content: center;
   height: fit-content;
   margin-left: 12px;
+  flex-shrink: 0;
 }
 
+/* === Perfil / Ajustes === */
 .profile-container, .settings-container {
   padding: 20px;
 }
@@ -522,8 +577,8 @@ button:disabled, .main-button:disabled {
   display: flex;
   gap: 6px;
   align-items: center;
-  flex-wrap: nowrap; /* no permitir que los botones salten de línea */
-  flex-shrink: 0; /* que no se encojan los botones */
+  flex-wrap: nowrap; 
+  flex-shrink: 0; 
 }
 
 /* Modal genérico */
@@ -584,4 +639,60 @@ thead th {
     padding: 6px 8px;
     font-size: 0.85em;
   }
+}
+
+/* Estilos para el componente Inicio */
+.inicio-container {
+    color: var(--color-primary-text);
+    padding: 20px;
+}
+
+.inicio-title {
+    text-align: center;
+    margin-bottom: 30px;
+    color: var(--color-accent-primary);
+}
+
+.inicio-welcome-text {
+    text-align: center;
+    margin-bottom: 40px;
+    font-size: 1.1em;
+}
+
+.updates-subtitle {
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--color-border);
+    padding-bottom: 10px;
+}
+
+.updates-grid {
+    display: grid;
+    gap: 20px;
+}
+
+.update-card {
+    background-color: var(--color-card-background);
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.update-card-title {
+    color: var(--color-secondary-text);
+    margin-bottom: 10px;
+}
+
+.update-card-date {
+    font-size: 0.9em;
+    color: var(--color-tertiary-text);
+    margin-bottom: 15px;
+}
+
+.loading-message, .error-message, .no-updates-message {
+    text-align: center;
+    padding: 20px;
+}
+
+.error-message {
+    color: var(--color-status-danger);
 }
