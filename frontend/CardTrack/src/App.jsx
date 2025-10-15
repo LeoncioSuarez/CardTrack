@@ -15,7 +15,7 @@ const AuthenticatedRoutes = () => {
     return (
         <Routes>
             <Route path="/" element={<Dashboard viewComponent={<Inicio />} />} />
-            <Route path="/boards" element={<Dashboard viewComponent={<BoardsPreview />} />} /> {/* ✅ correcta */}
+            <Route path="/boards" element={<Dashboard viewComponent={<BoardsPreview />} />} />
             <Route path="/create" element={<Dashboard viewComponent={<CreateBoard />} />} />
             <Route path="/profile" element={<Dashboard viewComponent={<Profile />} />} />
             <Route path="/settings" element={<Dashboard viewComponent={<Settings />} />} />

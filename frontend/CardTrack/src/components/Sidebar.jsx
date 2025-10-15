@@ -23,16 +23,20 @@ const Sidebar = () => {
         <div className="sidebar-menu">
             <div className="sidebar-title">CardTrack</div>
             <ul className="sidebar-list">
-                {menuItems.map((item) => (
-                    <li
-                        key={item.id}
-                        // CLASE CORREGIDA: Usa 'menu-item' para coincidir con index.css
-                        className={`menu-item ${location.pathname === item.path ? 'active' : ''}`}
-                        onClick={() => handleItemClick(item.path)}
-                    >
-                        {item.label}
-                    </li>
-                ))}
+                                {menuItems.map((item) => {
+                                        const isActive = item.path === '/boards'
+                                            ? location.pathname.startsWith('/boards')
+                                            : location.pathname === item.path;
+                    return (
+                        <li
+                            key={item.id}
+                            className={`menu-item ${isActive ? 'active' : ''}`}
+                            onClick={() => handleItemClick(item.path)}
+                        >
+                            {item.label}
+                        </li>
+                    );
+                })}
             </ul>
             {/* CLASE CORREGIDA: Usa 'sidebar-logout-button' para la posición inferior */}
             <button onClick={logout} className="sidebar-logout-button"> 

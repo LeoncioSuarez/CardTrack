@@ -68,16 +68,16 @@ const BoardEditor = () => {
     [token]
   );
 
-  const fetchJson = async (url) => {
+  const fetchJson = useCallback(async (url) => {
     const res = await fetch(url, { headers: authHeaders });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.detail || `Error HTTP ${res.status}`);
     }
     return res.json();
-  };
+  }, [authHeaders]);
 
-  const loadBoardAndColumns = async () => {
+  const loadBoardAndColumns = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -94,12 +94,12 @@ const BoardEditor = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [boardId, fetchJson]);
 
   useEffect(() => {
     if (!token || !boardId) return;
     loadBoardAndColumns();
-  }, [boardId, token]);
+  }, [boardId, token, loadBoardAndColumns]);
 
   const createColumn = async (title, color) => {
     const position = columns.length;
@@ -415,36 +415,45 @@ const BoardEditor = () => {
               draggable
               onDragStart={(e) => onColumnDragStart(e, column.id)}
             >
-              {editingColumnId === column.id ? (
-                <>
-                  <input
-                    className="form-input"
-                    value={editingColumnTitle}
-                    onChange={(e) => setEditingColumnTitle(e.target.value)}
-                    placeholder="Nombre de columna"
-                    style={{ marginRight: 8 }}
-                  />
-                  <input
-                    type="color"
-                    value={editingColumnColor}
-                    onChange={(e) => setEditingColumnColor(e.target.value)}
-                    title="Color del encabezado"
-                    style={{ width: 44, height: 36, padding: 0, border: 'none', background: 'transparent', cursor: 'pointer', marginRight: 8 }}
-                  />
-                  <div className="column-actions">
-                    <button className="secondary-button" style={{ backgroundColor: '#ffffff', color: 'var(--color-accent-primary)', borderColor: '#ffffff' }} onClick={() => confirmEditColumn(column)}>Guardar</button>
-                    <button className="secondary-button" style={{ backgroundColor: '#ffffff', color: 'var(--color-accent-primary)', borderColor: '#ffffff' }} onClick={() => setEditingColumnId(null)}>Cancelar</button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <h3 title={column.title} style={{ wordBreak: 'break-word' }}>{column.title}</h3>
-                  <div className="column-actions">
-                    <button className="secondary-button" onClick={() => startEditColumn(column)}>Renombrar</button>
-                    <button className="danger-button" onClick={() => handleDeleteColumn(column)}>Eliminar</button>
-                  </div>
-                </>
-              )}
+                {editingColumnId === column.id ? (
+                  <>
+                    <input
+                      className="form-input"
+                      value={editingColumnTitle}
+                      onChange={(e) => setEditingColumnTitle(e.target.value)}
+                      placeholder="Nombre de columna"
+                      style={{ marginRight: 8 }}
+                    />
+                    <input
+                      type="color"
+                      value={editingColumnColor}
+                      onChange={(e) => setEditingColumnColor(e.target.value)}
+                      title="Color del encabezado"
+                      className="color-input"
+                      style={{ width: 36, height: 36, padding: 0, marginRight: 8, cursor: 'pointer' }}
+                    />
+                    <div className="column-actions">
+                      <button className="icon-button" title="Guardar" onClick={() => confirmEditColumn(column)}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 4h10l4 4v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M15 4v5H9V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </button>
+                      <button className="icon-button" title="Cancelar" onClick={() => setEditingColumnId(null)}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <h3 title={column.title} style={{ wordBreak: 'break-word' }}>{column.title}</h3>
+                    <div className="column-actions">
+                      <button className="icon-button" title="Renombrar" onClick={() => startEditColumn(column)}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 21v-3.75l11-11L20.75 9 9.75 20H3z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </button>
+                      <button className="icon-button icon-button--danger" title="Eliminar" onClick={() => handleDeleteColumn(column)}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/><path d="M8 6v12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/><path d="M10 11v6M14 11v6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </button>
+                    </div>
+                  </>
+                )}
             </div>
 
             <ul
@@ -455,17 +464,30 @@ const BoardEditor = () => {
               {(column.cards || []).map((card) => (
                 <li
                   key={card.id}
-                  className="task-item"
+                  className={`task-item`}
                   draggable
                   onDragStart={(e) => onCardDragStart(e, card, column.id)}
                   onDragOver={onCardDragOverList}
                   onDrop={(e) => onCardDropOnItem(e, column, card)}
                   title={card.description || ''}
+                  onDoubleClick={(e) => {
+                    const li = e.currentTarget;
+                    li.classList.toggle('expanded');
+                  }}
                 >
-                  <span>{card.title}</span>
+                  <div style={{ flex: 1 }}>
+                    <div className="task-title">{card.title}</div>
+                    <div className="task-details">
+                      <p style={{ marginTop: 8, marginBottom: 8, color: 'var(--color-secondary-text)' }}>{card.description}</p>
+                    </div>
+                  </div>
                   <div className="task-actions">
-                    <button className="secondary-button" onClick={() => handleEditTask(column, card)}>Editar</button>
-                    <button className="danger-button" onClick={() => handleDeleteTask(column, card)}>Eliminar</button>
+                    <button className="icon-button" title="Editar" onClick={() => handleEditTask(column, card)}>
+                      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 21l3-1 11-11 2 2L8 22l-5 0z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </button>
+                    <button className="icon-button icon-button--danger" title="Eliminar" onClick={() => handleDeleteTask(column, card)}>
+                      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M8 6v14a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </button>
                   </div>
                 </li>
               ))}
@@ -474,9 +496,15 @@ const BoardEditor = () => {
         ))}
       </div>
 
-      <div className="board-footer-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, paddingTop: 10 }}>
-        <button className="secondary-button" onClick={handleAddColumn}>+ Añadir columna</button>
-        <button className="secondary-button" onClick={openTaskModal}>+ Añadir tarea</button>
+      
+      <div className="board-bottom-bar" role="toolbar">
+        <div className="board-bottom-bar__left">
+          <button className="secondary-button" onClick={() => setShowUsersModal(true)}>Ver usuarios</button>
+        </div>
+        <div className="board-bottom-bar__right">
+          <button className="main-button main-button--small" onClick={handleAddColumn}>+ Añadir columna</button>
+          <button className="main-button main-button--small" onClick={openTaskModal}>+ Añadir tarea</button>
+        </div>
       </div>
 
       {showAddColumnModal && (

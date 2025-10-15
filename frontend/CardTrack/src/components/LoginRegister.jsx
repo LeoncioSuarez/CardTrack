@@ -1,16 +1,13 @@
-// src/components/LoginRegister.jsx (Actualizado para diseño de dos columnas)
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../useAuth.js';
-import { useNavigate } from 'react-router-dom'; // Aseguramos el import
+import { useNavigate } from 'react-router-dom';
 
 const API_GALLERY_URL = 'http://127.0.0.1:8000/api/carousel-images/';
 
 const LoginRegister = () => {
     const { login, register, isAuthenticated } = useAuth();
     const navigate = useNavigate();
-    
-    // Estados del formulario
+
     const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -18,26 +15,21 @@ const LoginRegister = () => {
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-    // Estados de la Galería
     const [images, setImages] = useState([]);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-    // 1. Redirección si ya está autenticado
     useEffect(() => {
         if (isAuthenticated) {
             navigate('/dashboard', { replace: true });
         }
     }, [isAuthenticated, navigate]);
 
-    // 2. Cargar Imágenes de la Galería
     useEffect(() => {
         const fetchImages = async () => {
             try {
-                // Asegúrate de que este endpoint sea público y no requiera autenticación
                 const response = await fetch(API_GALLERY_URL);
                 if (response.ok) {
                     let data = await response.json();
-                    // Filtrar solo las activas y ordenar por position
                     if (Array.isArray(data)) {
                         data = data
                             .filter(item => item.is_active)
@@ -55,18 +47,16 @@ const LoginRegister = () => {
         fetchImages();
     }, []);
 
-    // 3. Lógica del Carrusel (Cambio automático cada 5 segundos)
     useEffect(() => {
         if (images.length > 0) {
             const interval = setInterval(() => {
                 setCurrentImageIndex(prevIndex => (prevIndex + 1) % images.length);
-            }, 5000); // Cambia cada 5 segundos
+            }, 5000);
 
-            return () => clearInterval(interval); // Limpieza
+            return () => clearInterval(interval);
         }
     }, [images.length]);
 
-    // 4. Manejo del Formulario
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
@@ -84,7 +74,6 @@ const LoginRegister = () => {
             if (!result.success) {
                 setError(result.error);
             }
-            // Si tiene éxito, el useEffect de arriba redirige
         } catch (error) {
             console.error('Error en login/register:', error);
             setError('Error de comunicación con el servidor. Intenta nuevamente.');
@@ -93,21 +82,17 @@ const LoginRegister = () => {
         }
     };
 
-    // 5. Renderizado
     const currentImageUrl = images.length > 0 
-        ? (images[currentImageIndex].image_url || images[currentImageIndex].image || images[currentImageIndex].url) // Ajusta el campo según tu respuesta de API
+        ? (images[currentImageIndex].image_url || images[currentImageIndex].image || images[currentImageIndex].url)
         : null;
 
     return (
         <div className="auth-page-container">
-            
-            {/* Columna Izquierda: Presentación y Carrusel */}
             <div className="auth-presentation-column">
-                <h1 className="presentation-title-1">Bienvenido A CardTrack</h1>
-                <h2 className="presentation-title-2">Tu Editor Kanban De Confianza</h2>
+                <h1 className="presentation-title-1">Bienvenido a cardtrack</h1>
+                <h2 className="presentation-title-2">tu editor kanban de confianza</h2>
 
-                {/* Contenedor del Carrusel */}
-                <div className="gallery-container" onMouseEnter={() => { /* pausa al hacer hover */ }}>
+                <div className="gallery-container">
                     {currentImageUrl ? (
                         <>
                             <img 
@@ -116,7 +101,6 @@ const LoginRegister = () => {
                                 className="gallery-image" 
                                 key={images[currentImageIndex].id || currentImageIndex}
                             />
-                            {/* Controles simples */}
                             {images.length > 1 && (
                                 <div className="gallery-controls">
                                     <button className="secondary-button gallery-prev" type="button" onClick={() => setCurrentImageIndex((currentImageIndex - 1 + images.length) % images.length)}>‹</button>
@@ -130,7 +114,6 @@ const LoginRegister = () => {
                 </div>
             </div>
 
-            {/* Columna Derecha: Formulario de Login/Registro */}
             <div className="auth-form-column">
                 <div className="auth-form-card">
                     <h2 className="auth-title">
