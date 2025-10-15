@@ -40,9 +40,9 @@ const CreateBoard = () => {
 
         if (result.success) {
             alert(`Tablero "${boardName}" y ${columns.length} columnas creadas exitosamente!`);
-            navigate('/'); 
+            navigate('/boards');
         } else {
-            setError(result.error || 'Fallo la conexión con el servidor.');
+            setError(result.error || 'No se pudo crear el tablero.');
         }
     };
 
@@ -79,7 +79,7 @@ const CreateBoard = () => {
                         placeholder="Nombre de la nueva columna (Ej: Revisión)"
                         className="form-input add-column-input"
                     />
-                    <button type="button" onClick={handleAddColumn} className="main-button" disabled={!newColumnName.trim()}>
+                    <button type="button" onClick={handleAddColumn} className="main-button main-button--small" disabled={!newColumnName.trim()}>
                         Añadir
                     </button>
                 </div>
