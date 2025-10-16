@@ -57,6 +57,34 @@
   --color-input-background: #1f1f1f;
 }
 
+/* Improve contrast for profile/info boxes in dark theme and ensure text is readable */
+.theme-dark .profile-info-box, .theme-dark .main-card {
+  background-color: var(--color-card-background);
+  color: var(--color-primary-text);
+}
+
+.profile-info-box div[style], .profile-info-box .readonly-field, .profile-info-box > div {
+  /* Fallback styling for inline boxes used in Profile.jsx (small cards showing dates) */
+  color: var(--color-primary-text);
+}
+
+.profile-info-box div[style] div {
+  /* inner text (labels) */
+  color: var(--color-secondary-text);
+}
+
+/* Ensure inputs and textarea in dark theme show readable text */
+.theme-dark input, .theme-dark textarea, .theme-dark .form-input, .theme-dark .auth-input {
+  background-color: var(--color-input-background);
+  color: var(--color-primary-text);
+  border-color: var(--color-border);
+}
+
+/* Ensure small label/metadata text uses secondary color for both themes */
+.profile-info-box .meta-label, .profile-info-box small {
+  color: var(--color-secondary-text);
+}
+
 a {
   font-weight: 500;
   color: var(--color-accent-primary);

@@ -60,6 +60,16 @@ class UserSerializer(serializers.ModelSerializer):
         password = validated_data.pop("password", None)
         if password:
             validated_data["password_hash"] = make_password(password)
+        # Avoid saving a file named like the default image (which could overwrite it)
+        pf = validated_data.get('profilepicture')
+        if pf and hasattr(pf, 'name'):
+            name = pf.name or ''
+            lname = name.lower()
+            if lname.startswith('default') or lname in ('profilepic/default.png', 'profilepic/default.jpg', 'default.png', 'default.jpg'):
+                import time, os
+                ext = os.path.splitext(name)[1] or ''
+                pf.name = f"user_new_{int(time.time())}{ext}"
+                validated_data['profilepicture'] = pf
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
@@ -68,6 +78,18 @@ class UserSerializer(serializers.ModelSerializer):
         if password:
             instance.password_hash = make_password(password)
             instance.save()
+        # If a new profile picture is uploaded with a reserved filename (e.g. 'default.png'),
+        # rename it to avoid overwriting the default image and to avoid confusing file placements.
+        pf = validated_data.get('profilepicture')
+        if pf and hasattr(pf, 'name'):
+            name = pf.name or ''
+            lname = name.lower()
+            if lname.startswith('default') or lname in ('profilepic/default.png', 'profilepic/default.jpg', 'default.png', 'default.jpg'):
+                import time, os
+                ext = os.path.splitext(name)[1] or ''
+                pf.name = f"user_{instance.id}_{int(time.time())}{ext}"
+                validated_data['profilepicture'] = pf
+
         return super().update(instance, validated_data)
 
 

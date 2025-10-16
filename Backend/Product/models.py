@@ -1,8 +1,22 @@
 from django.db import models
 
 #   User
+def upload_to_user_profile(instance, filename):
+    """Place uploaded user profile images under profilepic/users/<user_id>/filename.
+
+    If the instance has no id yet (unsaved), place in a temp folder with timestamp.
+    """
+    import time, os
+    base = 'profilepic/users'
+    name = os.path.basename(filename)
+    if instance and getattr(instance, 'id', None):
+        return f"{base}/{instance.id}/{name}"
+    else:
+        return f"{base}/temp/{int(time.time())}_{name}"
+
+
 class User(models.Model):
-    profilepicture = models.ImageField(upload_to='profilepic/', default='profilepic/default.png')
+    profilepicture = models.ImageField(upload_to=upload_to_user_profile, default='profilepic/default.png')
     name = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
     password_hash = models.CharField(max_length=255)  
