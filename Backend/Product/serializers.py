@@ -46,7 +46,9 @@ class BoardSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, required=True)
+    # password is write-only and optional for updates; only used to set password_hash
+    password = serializers.CharField(write_only=True, required=False, allow_blank=True)
+
     class Meta:
         model = User
         fields = ["profilepicture","id", "name", "email", "password", "aboutme", "registration_date", "last_login"]
@@ -55,9 +57,18 @@ class UserSerializer(serializers.ModelSerializer):
         }
 
     def create(self, validated_data):
-        password = validated_data.pop("password")
-        validated_data["password_hash"] = make_password(password)
+        password = validated_data.pop("password", None)
+        if password:
+            validated_data["password_hash"] = make_password(password)
         return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        # Handle password hashing if password present in payload
+        password = validated_data.pop("password", None)
+        if password:
+            instance.password_hash = make_password(password)
+            instance.save()
+        return super().update(instance, validated_data)
 
 
 class CarouselImageSerializer(serializers.ModelSerializer):

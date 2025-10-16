@@ -1,5 +1,6 @@
 import React, { useState, useEffect, createContext } from 'react';
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const AuthContext = createContext();
 
 const API_BASE_URL = 'http://127.0.0.1:8000/api';
@@ -24,12 +25,9 @@ export const AuthProvider = ({ children }) => {
             if (response.ok && data.token) {
                 localStorage.setItem('token', data.token);
                 setToken(data.token);
-                setUser({
-                    id: data.user_id,
-                    name: data.name,
-                    email: data.email
-                });
                 setIsAuthenticated(true);
+                // refresh full user data from /users/me/
+                await refreshUser(data.token, { id: data.user_id, name: data.name, email: data.email });
                 setLoading(false);
                 return { success: true };
             } else {
@@ -39,7 +37,7 @@ export const AuthProvider = ({ children }) => {
                 setLoading(false);
                 return { success: false, error: data.error || 'Credenciales inválidas.' };
             }
-        } catch (err) {
+        } catch {
             setError('Error de conexión con el servidor.');
             setLoading(false);
             return { success: false, error: 'Error de conexión con el servidor.' };
@@ -57,16 +55,51 @@ export const AuthProvider = ({ children }) => {
             });
             const data = await response.json();
             if (response.ok) {
-                return login(email, password);
+                const res = await login(email, password);
+                // ensure user refreshed by login
+                return res;
             } else {
                 setError(data.email ? 'El correo ya existe.' : data.error || 'Error de registro.');
                 setLoading(false);
                 return { success: false, error: data.email ? 'El correo ya existe.' : data.error || 'Error de registro.' };
             }
-        } catch (err) {
+        } catch {
             setError('Error de conexión con el servidor.');
             setLoading(false);
             return { success: false, error: 'Error de conexión con el servidor.' };
+        }
+    };
+
+    const refreshUser = async (overrideToken = null, seedUser = null) => {
+        const usedToken = overrideToken || token || localStorage.getItem('token');
+        if (!usedToken) return;
+        try {
+            const res = await fetch(`${API_BASE_URL}/users/me/`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Token ${usedToken}`
+                }
+            });
+            const data = await res.json();
+            if (!data.error) {
+                setUser({
+                    id: data.id || (seedUser && seedUser.id),
+                    name: data.name || (seedUser && seedUser.name),
+                    email: data.email || (seedUser && seedUser.email),
+                    profilepicture: data.profilepicture,
+                    aboutme: data.aboutme,
+                    registration_date: data.registration_date || data.date_joined,
+                    last_login: data.last_login
+                });
+                setIsAuthenticated(true);
+            } else {
+                // logout if token invalid
+                logout();
+            }
+        } catch (err) {
+            // keep previous user if network error; do not logout
+            console.error('refreshUser error', err);
         }
     };
 
@@ -174,7 +207,7 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     return (
-        <AuthContext.Provider value={{ isAuthenticated, user, token, login, register, logout, createBoard, loading, error }}>
+        <AuthContext.Provider value={{ isAuthenticated, user, token, login, register, logout, createBoard, loading, error, refreshUser }}>
             {children}
         </AuthContext.Provider>
     );
