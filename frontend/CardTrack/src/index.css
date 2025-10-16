@@ -39,6 +39,12 @@
   font-size: 16px;
 
   /* Configuración global */
+  color-scheme: light; 
+  color: var(--color-primary-text);
+  background-color: var(--color-primary-background);
+
+}
+
 .theme-dark {
   --color-primary-background: #181818;
   --color-surface-background: #232323;
@@ -671,13 +677,14 @@ button:disabled, .main-button:disabled {
   width: 36px;
   height: 36px;
   border-radius: 6px;
-  background: var(--color-white);
+  background: var(--color-card-background);
   color: var(--color-primary-text);
   border: 1px solid var(--color-border);
   padding: 4px;
   cursor: pointer;
 }
-.icon-button svg { display: block; }
+.icon-button svg { display: block; width: 18px; height: 18px; }
+.icon-button svg * { stroke: currentColor; fill: none; }
 .icon-button:hover { background: var(--color-accent-primary); color: var(--color-white); border-color: var(--color-accent-primary); }
 .icon-button--danger { background: #ff5c5c; color: #fff; border-color: #ff5c5c; }
 
