@@ -3,9 +3,10 @@ import { useAuth } from '../useAuth.js';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const menuItems = [
+    { id: 'inicio', label: 'Inicio', path: '/' },
     { id: 'profile', label: 'Mi Perfil', path: '/profile' },
     { id: 'createBoard', label: 'Crear Tablero', path: '/create' },
-    { id: 'myBoards', label: 'Tus Tableros', path: '/' },
+    { id: 'myBoards', label: 'Tus Tableros', path: '/boards' },
     { id: 'settings', label: 'Opciones y Seguridad', path: '/settings' },
 ];
 
@@ -22,15 +23,14 @@ const Sidebar = () => {
         <div className="sidebar-menu">
             <div className="sidebar-title">CardTrack</div>
             <ul className="sidebar-list">
-                {menuItems.map((item) => {
-                    const isActive =
-                        location.pathname === item.path ||
-                        (item.id === 'myBoards' && location.pathname.startsWith('/boards/'));
-
+                                {menuItems.map((item) => {
+                                        const isActive = item.path === '/boards'
+                                            ? location.pathname.startsWith('/boards')
+                                            : location.pathname === item.path;
                     return (
                         <li
                             key={item.id}
-                            className={`menu-item${isActive ? ' active' : ''}`}
+                            className={`menu-item ${isActive ? 'active' : ''}`}
                             onClick={() => handleItemClick(item.path)}
                         >
                             {item.label}
@@ -38,9 +38,9 @@ const Sidebar = () => {
                     );
                 })}
             </ul>
-            <div style={{ flexGrow: 1 }}></div>
-            <button className="main-button sidebar-logout-button" onClick={logout}>
-                Cerrar Sesión
+            {/* CLASE CORREGIDA: Usa 'sidebar-logout-button' para la posición inferior */}
+            <button onClick={logout} className="sidebar-logout-button"> 
+                Cerrar sesión
             </button>
         </div>
     );
