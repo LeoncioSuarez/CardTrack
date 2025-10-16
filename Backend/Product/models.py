@@ -2,6 +2,7 @@ from django.db import models
 
 #   User
 class User(models.Model):
+    profilepicture = models.ImageField(upload_to='profilepic/', default='profilepic/default.png')
     name = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
     password_hash = models.CharField(max_length=255)  
