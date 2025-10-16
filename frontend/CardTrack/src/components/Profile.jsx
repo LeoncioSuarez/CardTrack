@@ -74,9 +74,8 @@ const Profile = () => {
                 const inputFile = inputFileRef.current && inputFileRef.current.files && inputFileRef.current.files[0];
                 const file = inputFile || fileToUpload;
                 if (file) {
+                    // append only once to avoid duplicate uploads
                     fd.append('profilepicture', file);
-                    // also append alternate key for compatibility
-                    try { fd.append('profile_picture', file); } catch (err) { console.debug('append alt key failed', err); }
                 }
                 if (DEV_LOG_FORMDATA && file) console.debug('Uploading file:', file.name, file.size, file.type);
                 if (DEV_LOG_FORMDATA) {
@@ -86,10 +85,7 @@ const Profile = () => {
                         }
                     } catch (err) { console.debug('formdata debug failed', err); }
                 }
-                    // For compatibility: if a file exists, add it under alternate key as well
-                    if (fileToUpload) {
-                        try { fd.append('profile_picture', fileToUpload); } catch (err) { console.debug('append alt key failed', err); }
-                    }
+                    // Note: we intentionally append the file only once (key 'profilepicture') to avoid duplicate files on the server.
                     const response = await fetch(`${API_BASE_URL}/users/${user.id}/`, {
                     method: 'PATCH',
                     headers: {
@@ -137,7 +133,7 @@ const Profile = () => {
                                 margin: '0 auto',
                                 borderRadius: 8,
                                 overflow: 'hidden',
-                                background: '#f7f7f7',
+                                background: 'var(--color-input-background)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
@@ -152,8 +148,8 @@ const Profile = () => {
                             )}
                         </div>
                         <input ref={inputFileRef} name="profilepicture" type="file" accept="image/*" style={{ display: 'none' }} onChange={onFileChange} />
-                        <div style={{ marginTop: 14, fontWeight: 700, fontSize: 18 }}>{user.name || 'Sin nombre'}</div>
-                        <div style={{ marginTop: 6, color: '#666' }}>{user.email}</div>
+                        <div style={{ marginTop: 14, fontWeight: 700, fontSize: 18, color: 'var(--color-primary-text)' }}>{user.name || 'Sin nombre'}</div>
+                        <div style={{ marginTop: 6, color: 'var(--color-secondary-text)' }}>{user.email}</div>
                     </div>
 
                     <div style={{ flex: 1 }}>
@@ -163,13 +159,13 @@ const Profile = () => {
                                 <div style={{ whiteSpace: 'pre-wrap', marginBottom: 18, minHeight: 80 }}>{user.aboutme || 'No hay descripción.'}</div>
 
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                                    <div style={{ background: '#fafafa', padding: 12, borderRadius: 6 }}>
-                                        <div style={{ fontSize: 12, color: '#666' }}>Registrado</div>
-                                        <div style={{ fontWeight: 600 }}>{user.registration_date ? new Date(user.registration_date).toLocaleString() : 'No disponible'}</div>
+                                    <div style={{ background: 'var(--color-card-background)', padding: 12, borderRadius: 6 }}>
+                                        <div style={{ fontSize: 12, color: 'var(--color-secondary-text)' }}>Registrado</div>
+                                        <div style={{ fontWeight: 600, color: 'var(--color-primary-text)' }}>{user.registration_date ? new Date(user.registration_date).toLocaleString() : 'No disponible'}</div>
                                     </div>
-                                    <div style={{ background: '#fafafa', padding: 12, borderRadius: 6 }}>
-                                        <div style={{ fontSize: 12, color: '#666' }}>Último login</div>
-                                        <div style={{ fontWeight: 600 }}>{user.last_login ? new Date(user.last_login).toLocaleString() : 'No disponible'}</div>
+                                    <div style={{ background: 'var(--color-card-background)', padding: 12, borderRadius: 6 }}>
+                                        <div style={{ fontSize: 12, color: 'var(--color-secondary-text)' }}>Último login</div>
+                                        <div style={{ fontWeight: 600, color: 'var(--color-primary-text)' }}>{user.last_login ? new Date(user.last_login).toLocaleString() : 'No disponible'}</div>
                                     </div>
                                 </div>
 
@@ -199,7 +195,7 @@ const Profile = () => {
                                                         setAboutCharsLeft(0);
                                                     }
                                                 }} rows={6} style={{ width: '100%' }} />
-                                                <div style={{ fontSize: 12, color: '#666', marginTop: 6 }}>{aboutCharsLeft} caracteres restantes</div>
+                                                <div style={{ fontSize: 12, color: 'var(--color-secondary-text)', marginTop: 6 }}>{aboutCharsLeft} caracteres restantes</div>
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: 8 }}>

@@ -181,29 +181,16 @@ export const AuthProvider = ({ children }) => {
         if (storedToken) {
             setToken(storedToken);
             setIsAuthenticated(true);
-            fetch(`${API_BASE_URL}/users/me/`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Token ${storedToken}`
+            // Use centralized refreshUser so profilepicture and other fields are normalized the same way
+            (async () => {
+                try {
+                    await refreshUser(storedToken);
+                } catch {
+                    logout();
                 }
-            })
-                .then(res => res.json())
-                .then(data => {
-                    if (!data.error) {
-                        setUser({
-                            id: data.id,
-                            name: data.name,
-                            email: data.email,
-                            registration_date: data.registration_date || data.date_joined,
-                            last_login: data.last_login
-                        });
-                    } else {
-                        logout();
-                    }
-                })
-                .catch(() => logout());
+            })();
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return (
