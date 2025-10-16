@@ -4,9 +4,7 @@ credentials.env
 # Variables de entorno
 .env
 # Media
-media/
-media/profilepic/
-media/carousel/
+
 
 # Archivos de Python compilados
 *.pyc
