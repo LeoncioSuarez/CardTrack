@@ -52,7 +52,7 @@ Asegúrate de tener instalado:
 
 1.  **Clonar el repositorio:**
     ```bash
-    git clone [https://github.com/tu-usuario/CardTrack.git](https://github.com/tu-usuario/CardTrack.git)
+    git clone https://github.com/LeoncioSuarez/CardTrack/
     cd CardTrack
     ```
 
