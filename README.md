@@ -58,11 +58,10 @@ Asegúrate de tener instalado:
 
 2.  **Configurar el entorno de Python y dependencias:**
     ```bash
-    # Asume que el backend está en una carpeta llamada 'backend'
     cd backend
     python -m venv venv
     source venv/bin/activate
-    pip install -r requirements.txt # Asegúrate de crear este archivo previamente
+    pip install -r requirements.txt 
     ```
 
 3.  **Configurar la Base de Datos y Variables de Entorno:**
