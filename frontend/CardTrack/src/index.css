@@ -101,6 +101,12 @@ body {
   font-family: 'Roboto', system-ui, -apple-system, 'Segoe UI', Avenir, Helvetica, Arial, sans-serif;
 }
 
+/* Prevent global vertical scrollbar on the page. Internal containers (columns, forms) should handle their own scrolling. */
+html, body, #root {
+  height: 100%;
+  overflow-y: hidden; /* disable global vertical scroll */
+}
+
 #root { 
   max-width: none; 
   margin: 0;       
@@ -173,6 +179,9 @@ button:disabled, .main-button:disabled {
   width: 100%;
   max-width: 400px;
   text-align: center;
+  /* allow the form content to scroll internally if viewport is small */
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
 }
 
 .auth-title {
@@ -475,6 +484,13 @@ button:disabled, .main-button:disabled {
   flex-direction: column;
   width: 100%;
   height: 100%;
+}
+
+/* Prevent the entire page from scrolling when viewing the editor or the auth page.
+   Keep internal scrolling where needed (columns horizontal scroll, form internal scroll). */
+.board-editor-container, .auth-page-container {
+  height: 100vh;      /* force full viewport height */
+  overflow: hidden;   /* disable page-level scrollbars */
 }
 
 .board-editor-title {

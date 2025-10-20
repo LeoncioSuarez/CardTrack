@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { useAuth } from '../useAuth.js'; 
+import { useContext } from 'react';
+import { AuthContext } from '../context/AuthContext.jsx';
+import { createBoard as apiCreateBoard } from '../utils/boardApi';
 import { useNavigate } from 'react-router-dom'; 
 
-const CreateBoard = () => {
-    const { createBoard } = useAuth(); 
+export const CreateBoard = () => {
+    const { token } = useContext(AuthContext);
     const navigate = useNavigate();
 
     const [boardName, setBoardName] = useState('');
@@ -35,15 +37,18 @@ const CreateBoard = () => {
             return;
         }
 
-        const result = await createBoard(boardName.trim(), columns);
-        setIsLoading(false);
-
-        if (result.success) {
+        try {
+            await apiCreateBoard(boardName.trim(), token, columns);
+            setIsLoading(false);
             alert(`Tablero "${boardName}" y ${columns.length} columnas creadas exitosamente!`);
             navigate('/boards');
-        } else {
-            setError(result.error || 'No se pudo crear el tablero.');
+            return;
+        } catch (err) {
+            setError(err.message || 'No se pudo crear el tablero.');
+            setIsLoading(false);
+            return;
         }
+        
     };
 
     return (

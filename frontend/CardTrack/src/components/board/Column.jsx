@@ -1,0 +1,74 @@
+import React from 'react';
+import ColumnHeader from './ColumnHeader';
+import CardItem from './CardItem';
+
+export const Column = ({
+  column,
+  headerRefs,
+  maxHeaderHeight,
+  editingColumnId,
+  editingColumnTitle,
+  editingColumnColor,
+  setEditingColumnTitle,
+  setEditingColumnColor,
+  confirmEditColumn,
+  startEditColumn,
+  setEditingColumnId,
+  onColumnDragOver,
+  onColumnDrop,
+  onColumnDragStart,
+  onDeleteColumn,
+  onCardDragOverList,
+  onCardDropOnListEnd,
+  onCardDragStart,
+  onCardDropOnItem,
+  handleEditTask,
+  handleDeleteTask,
+}) => {
+  return (
+    <div
+      key={column.id}
+      className="board-column"
+      onDragOver={onColumnDragOver}
+      onDrop={(e) => onColumnDrop(e, column.id)}
+    >
+      <ColumnHeader
+        column={column}
+        editingColumnId={editingColumnId}
+        editingColumnTitle={editingColumnTitle}
+        editingColumnColor={editingColumnColor}
+        setEditingColumnTitle={setEditingColumnTitle}
+        setEditingColumnColor={setEditingColumnColor}
+        confirmEditColumn={confirmEditColumn}
+        startEditColumn={startEditColumn}
+        setEditingColumnId={setEditingColumnId}
+        headerRef={(el) => { if (el) headerRefs.current.set(column.id, el); }}
+        onDragStart={onColumnDragStart}
+        onDeleteColumn={onDeleteColumn}
+        maxHeaderHeight={maxHeaderHeight}
+      />
+
+      <ul
+        className="tasks-list"
+        onDragOver={onCardDragOverList}
+        onDrop={(e) => onCardDropOnListEnd(e, column)}
+      >
+        {(column.cards || []).map((card) => (
+          <CardItem
+            key={card.id}
+            card={card}
+            column={column}
+            onEdit={handleEditTask}
+            onDelete={handleDeleteTask}
+            onDragStart={onCardDragStart}
+            onDragOver={onCardDragOverList}
+            onDrop={onCardDropOnItem}
+            onDoubleClick={(e) => { const li = e.currentTarget; li.classList.toggle('expanded'); }}
+          />
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+export default Column;

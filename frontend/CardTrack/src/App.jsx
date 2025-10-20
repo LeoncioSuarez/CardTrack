@@ -1,15 +1,8 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-import LoginRegister from './components/LoginRegister';
-import Dashboard from './components/Dashboard';
-import BoardEditor from './components/BoardEditor';
-import BoardsPreview from './components/BoardsPreview';
-import CreateBoard from './components/CreateBoard';
-import Profile from './components/Profile';
-import Settings from './components/Settings';
-import Inicio from './components/Inicio';
-import { AuthProvider } from './AuthContext.jsx';
-import { useAuth } from './useAuth.js';
+import { LoginRegister, Dashboard, BoardEditor, BoardsPreview, CreateBoard, Profile, Settings, Inicio } from './components';
+import { AuthProvider, AuthContext } from './context/AuthContext.jsx';
+import { useContext } from 'react';
 
 const AuthenticatedRoutes = () => {
     return (
@@ -25,7 +18,7 @@ const AuthenticatedRoutes = () => {
 };
 
 const AppRouter = () => {
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated } = useContext(AuthContext);
 
     return (
         <Routes>

@@ -1,10 +1,16 @@
-import React, { useEffect, useState, useContext, useMemo, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useContext, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { AuthContext } from '../AuthContext.jsx';
+import { AuthContext } from '../context/AuthContext.jsx';
+import * as boardApi from '../utils/boardApi';
+import Column from './board/Column';
+import ColumnHeader from './board/ColumnHeader';
+import CardItem from './board/CardItem';
+import TaskModal from './board/TaskModal';
+import AddColumnModal from './board/AddColumnModal';
 
 const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
-const BoardEditor = () => {
+export const BoardEditor = () => {
   const { boardId } = useParams();
   const { token, user } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -63,27 +69,13 @@ const BoardEditor = () => {
     return () => window.removeEventListener('resize', onResize);
   }, [recalcHeaderHeights]);
 
-  const authHeaders = useMemo(
-    () => ({ 'Content-Type': 'application/json', 'Authorization': `Token ${token}` }),
-    [token]
-  );
-
-  const fetchJson = useCallback(async (url) => {
-    const res = await fetch(url, { headers: authHeaders });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || `Error HTTP ${res.status}`);
-    }
-    return res.json();
-  }, [authHeaders]);
-
   const loadBoardAndColumns = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const [boardData, columnsData] = await Promise.all([
-        fetchJson(`${API_BASE_URL}/boards/${boardId}/`),
-        fetchJson(`${API_BASE_URL}/boards/${boardId}/columns/`),
+        boardApi.getBoard(boardId, token),
+        boardApi.getColumns(boardId, token),
       ]);
       setBoard(boardData);
       const sortedCols = [...columnsData].sort((a, b) => a.position - b.position)
@@ -94,7 +86,7 @@ const BoardEditor = () => {
     } finally {
       setLoading(false);
     }
-  }, [boardId, fetchJson]);
+  }, [boardId, token]);
 
   useEffect(() => {
     if (!token || !boardId) return;
@@ -103,56 +95,29 @@ const BoardEditor = () => {
 
   const createColumn = async (title, color) => {
     const position = columns.length;
-    const res = await fetch(`${API_BASE_URL}/boards/${boardId}/columns/`, {
-      method: 'POST',
-      headers: authHeaders,
-      body: JSON.stringify({ title, position, color }),
-    });
-    if (!res.ok) throw new Error('No se pudo crear la columna');
+    await boardApi.createColumn(boardId, token, title, color, position);
     await loadBoardAndColumns();
   };
 
   const updateColumn = async (columnId, payload) => {
-    const res = await fetch(`${API_BASE_URL}/boards/${boardId}/columns/${columnId}/`, {
-      method: 'PATCH',
-      headers: authHeaders,
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) throw new Error('No se pudo actualizar la columna');
+    await boardApi.updateColumn(boardId, token, columnId, payload);
   };
 
   const deleteColumn = async (columnId) => {
-    const res = await fetch(`${API_BASE_URL}/boards/${boardId}/columns/${columnId}/`, {
-      method: 'DELETE',
-      headers: authHeaders,
-    });
-    if (!res.ok && res.status !== 204) throw new Error('No se pudo eliminar la columna');
+    await boardApi.deleteColumn(boardId, token, columnId);
+    await loadBoardAndColumns();
   };
 
   const createCard = async (columnId, title, description, position) => {
-    const res = await fetch(`${API_BASE_URL}/boards/${boardId}/columns/${columnId}/cards/`, {
-      method: 'POST',
-      headers: authHeaders,
-      body: JSON.stringify({ title, description, position }),
-    });
-    if (!res.ok) throw new Error('No se pudo crear la tarea');
+    await boardApi.createCard(boardId, token, columnId, title, description, position);
   };
 
   const updateCard = async (columnId, cardId, payload) => {
-    const res = await fetch(`${API_BASE_URL}/boards/${boardId}/columns/${columnId}/cards/${cardId}/`, {
-      method: 'PATCH',
-      headers: authHeaders,
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) throw new Error('No se pudo actualizar la tarea');
+    await boardApi.updateCard(boardId, token, columnId, cardId, payload);
   };
 
   const deleteCard = async (columnId, cardId) => {
-    const res = await fetch(`${API_BASE_URL}/boards/${boardId}/columns/${columnId}/cards/${cardId}/`, {
-      method: 'DELETE',
-      headers: authHeaders,
-    });
-    if (!res.ok && res.status !== 204) throw new Error('No se pudo eliminar la tarea');
+    await boardApi.deleteCard(boardId, token, columnId, cardId);
   };
 
   const handleAddColumn = () => {
@@ -402,97 +367,30 @@ const BoardEditor = () => {
 
       <div className="board-columns-container">
         {columns.map((column) => (
-          <div
+          <Column
             key={column.id}
-            className="board-column"
-            onDragOver={onColumnDragOver}
-            onDrop={(e) => onColumnDrop(e, column.id)}
-          >
-            <div
-              className="column-header"
-              ref={(el) => { if (el) headerRefs.current.set(column.id, el); }}
-              style={{ height: maxHeaderHeight ? `${maxHeaderHeight}px` : 'auto', backgroundColor: column.color || 'var(--color-accent-primary)' }}
-              draggable
-              onDragStart={(e) => onColumnDragStart(e, column.id)}
-            >
-                {editingColumnId === column.id ? (
-                  <>
-                    <input
-                      className="form-input"
-                      value={editingColumnTitle}
-                      onChange={(e) => setEditingColumnTitle(e.target.value)}
-                      placeholder="Nombre de columna"
-                      style={{ marginRight: 8 }}
-                    />
-                    <input
-                      type="color"
-                      value={editingColumnColor}
-                      onChange={(e) => setEditingColumnColor(e.target.value)}
-                      title="Color del encabezado"
-                      className="color-input"
-                      style={{ width: 36, height: 36, padding: 0, marginRight: 8, cursor: 'pointer' }}
-                    />
-                    <div className="column-actions">
-                      <button className="icon-button" title="Guardar" onClick={() => confirmEditColumn(column)}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 4h10l4 4v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M15 4v5H9V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      </button>
-                      <button className="icon-button" title="Cancelar" onClick={() => setEditingColumnId(null)}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <h3 title={column.title} style={{ wordBreak: 'break-word' }}>{column.title}</h3>
-                    <div className="column-actions">
-                      <button className="icon-button" title="Renombrar" onClick={() => startEditColumn(column)}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 21v-3.75l11-11L20.75 9 9.75 20H3z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      </button>
-                      <button className="icon-button icon-button--danger" title="Eliminar" onClick={() => handleDeleteColumn(column)}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/><path d="M8 6v12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/><path d="M10 11v6M14 11v6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      </button>
-                    </div>
-                  </>
-                )}
-            </div>
-
-            <ul
-              className="tasks-list"
-              onDragOver={onCardDragOverList}
-              onDrop={(e) => onCardDropOnListEnd(e, column)}
-            >
-              {(column.cards || []).map((card) => (
-                <li
-                  key={card.id}
-                  className={`task-item`}
-                  draggable
-                  onDragStart={(e) => onCardDragStart(e, card, column.id)}
-                  onDragOver={onCardDragOverList}
-                  onDrop={(e) => onCardDropOnItem(e, column, card)}
-                  title={card.description || ''}
-                  onDoubleClick={(e) => {
-                    const li = e.currentTarget;
-                    li.classList.toggle('expanded');
-                  }}
-                >
-                  <div style={{ flex: 1 }}>
-                    <div className="task-title">{card.title}</div>
-                    <div className="task-details">
-                      <p style={{ marginTop: 8, marginBottom: 8, color: 'var(--color-secondary-text)' }}>{card.description}</p>
-                    </div>
-                  </div>
-                  <div className="task-actions">
-                    <button className="icon-button" title="Editar" onClick={() => handleEditTask(column, card)}>
-                      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 21l3-1 11-11 2 2L8 22l-5 0z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    </button>
-                    <button className="icon-button icon-button--danger" title="Eliminar" onClick={() => handleDeleteTask(column, card)}>
-                      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M8 6v14a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
+            column={column}
+            headerRefs={headerRefs}
+            maxHeaderHeight={maxHeaderHeight}
+            editingColumnId={editingColumnId}
+            editingColumnTitle={editingColumnTitle}
+            editingColumnColor={editingColumnColor}
+            setEditingColumnTitle={setEditingColumnTitle}
+            setEditingColumnColor={setEditingColumnColor}
+            confirmEditColumn={confirmEditColumn}
+            startEditColumn={startEditColumn}
+            setEditingColumnId={setEditingColumnId}
+            onColumnDragOver={onColumnDragOver}
+            onColumnDrop={onColumnDrop}
+            onColumnDragStart={onColumnDragStart}
+            onDeleteColumn={handleDeleteColumn}
+            onCardDragOverList={onCardDragOverList}
+            onCardDropOnListEnd={onCardDropOnListEnd}
+            onCardDragStart={onCardDragStart}
+            onCardDropOnItem={onCardDropOnItem}
+            handleEditTask={handleEditTask}
+            handleDeleteTask={handleDeleteTask}
+          />
         ))}
       </div>
 
@@ -507,79 +405,22 @@ const BoardEditor = () => {
         </div>
       </div>
 
-      {showAddColumnModal && (
-        <div className="modal-overlay" role="dialog" aria-modal="true">
-          <div className="modal-content">
-            <div className="modal-title">Añadir columna</div>
-            <div className="form-row">
-              <label className="form-label">Nombre</label>
-              <input
-                className="form-input"
-                placeholder="Ej: En progreso"
-                value={newColumn.title}
-                onChange={(e) => setNewColumn(prev => ({ ...prev, title: e.target.value }))}
-              />
-            </div>
-            <div className="form-row">
-              <label className="form-label">Color del encabezado</label>
-              <input
-                type="color"
-                value={newColumn.color}
-                onChange={(e) => setNewColumn(prev => ({ ...prev, color: e.target.value }))}
-                title="Color del encabezado"
-                style={{ width: 50, height: 36, padding: 0, border: 'none', background: 'transparent', cursor: 'pointer' }}
-              />
-            </div>
-            <div className="modal-actions">
-              <button className="secondary-button" onClick={() => setShowAddColumnModal(false)}>Cancelar</button>
-              <button className="main-button" onClick={submitAddColumn} disabled={!newColumn.title.trim()}>Crear columna</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AddColumnModal
+        visible={showAddColumnModal}
+        newColumn={newColumn}
+        setNewColumn={setNewColumn}
+        onClose={() => setShowAddColumnModal(false)}
+        onSubmit={submitAddColumn}
+      />
 
-      {showTaskModal && (
-        <div className="modal-overlay" role="dialog" aria-modal="true">
-          <div className="modal-content">
-            <div className="modal-title">Añadir tarea</div>
-            <div className="form-row">
-              <label className="form-label">Columna</label>
-              <select
-                className="form-input"
-                value={taskForm.columnId}
-                onChange={(e) => setTaskForm(prev => ({ ...prev, columnId: e.target.value }))}
-              >
-                {columns.map(c => (
-                  <option key={c.id} value={c.id}>{c.title}</option>
-                ))}
-              </select>
-            </div>
-            <div className="form-row">
-              <label className="form-label">Nombre de la tarea</label>
-              <input
-                className="form-input"
-                placeholder="Ej: Implementar API"
-                value={taskForm.title}
-                onChange={(e) => setTaskForm(prev => ({ ...prev, title: e.target.value }))}
-              />
-            </div>
-            <div className="form-row">
-              <label className="form-label">Descripción breve</label>
-              <textarea
-                className="form-input"
-                placeholder="Opcional"
-                rows={3}
-                value={taskForm.description}
-                onChange={(e) => setTaskForm(prev => ({ ...prev, description: e.target.value }))}
-              />
-            </div>
-            <div className="modal-actions">
-              <button className="secondary-button" onClick={closeTaskModal}>Cancelar</button>
-              <button className="main-button" onClick={submitTaskModal} disabled={!taskForm.title.trim()}>Crear tarea</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <TaskModal
+        visible={showTaskModal}
+        columns={columns}
+        taskForm={taskForm}
+        setTaskForm={setTaskForm}
+        onSubmit={submitTaskModal}
+        onClose={closeTaskModal}
+      />
 
       {showUsersModal && (
         <div className="modal-overlay" role="dialog" aria-modal="true">

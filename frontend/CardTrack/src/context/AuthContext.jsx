@@ -1,11 +1,9 @@
 import React, { useState, useEffect, createContext } from 'react';
-import * as authApi from './utils/authApi';
-import * as boardApi from './utils/boardApi';
+import * as authApi from '../utils/authApi';
+import * as boardApi from '../utils/boardApi';
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const AuthContext = createContext();
-
-const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
 export const AuthProvider = ({ children }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -107,7 +105,6 @@ export const AuthProvider = ({ children }) => {
         if (storedToken) {
             setToken(storedToken);
             setIsAuthenticated(true);
-            // Use centralized refreshUser so profilepicture and other fields are normalized the same way
             (async () => {
                 try {
                     await refreshUser(storedToken);
@@ -125,3 +122,5 @@ export const AuthProvider = ({ children }) => {
         </AuthContext.Provider>
     );
 };
+
+export default AuthProvider;

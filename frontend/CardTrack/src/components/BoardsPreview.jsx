@@ -1,8 +1,7 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { AuthContext } from '../AuthContext.jsx';
+import { AuthContext } from '../context/AuthContext.jsx';
 import { useNavigate } from 'react-router-dom';
-
-const API_BASE_URL = 'http://127.0.0.1:8000/api';
+import { fetchBoards } from '../utils/api';
 
 const BoardsPreview = () => {
   const { token, user } = useContext(AuthContext);
@@ -13,49 +12,29 @@ const BoardsPreview = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    let mounted = true;
     if (!token || !user) {
       setBoards([]);
       setLoading(false);
-      return;
+      return () => { mounted = false; };
     }
-
-    let isMounted = true;
-    setLoading(true);
-    setError(null);
-
-    const url = `${API_BASE_URL}/boards/`;
-
-    fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Token ${token}`
-      }
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.detail || 'Error en la respuesta del servidor');
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await fetchBoards(token);
+        if (mounted) setBoards(data);
+      } catch (e) {
+        console.error('Error cargando tableros:', e);
+        if (mounted) {
+          setError(e.message || 'Error desconocido');
+          setBoards([]);
         }
-        return res.json();
-      })
-      .then(data => {
-        if (!isMounted) return;
-        setBoards(data);
-      })
-      .catch(err => {
-        console.error('Error cargando tableros:', err);
-        setError(err.message || 'Error desconocido');
-        setBoards([]);
-      })
-      .finally(() => {
-        if (!isMounted) return;
-        setLoading(false);
-      });
-
-    return () => {
-      isMounted = false;
-    };
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
   }, [token, user]);
 
   const handleOpenBoard = (boardId) => {
@@ -65,11 +44,7 @@ const BoardsPreview = () => {
   const handleDeleteBoard = async (board) => {
     if (!window.confirm(`¿Eliminar el tablero "${board.title}"?`)) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/boards/${board.id}/`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Token ${token}` }
-      });
-      if (!res.ok && res.status !== 204) throw new Error('No se pudo eliminar el tablero');
+      await (await import('../utils/boardApi')).deleteBoard(board.id, token);
       setBoards(prev => prev.filter(b => b.id !== board.id));
     } catch (e) {
       alert(e.message);
