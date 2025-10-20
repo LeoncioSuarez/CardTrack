@@ -1,7 +1,7 @@
 import React from 'react';
 import Sidebar from './Sidebar.jsx';
 
-const Dashboard = ({ viewComponent }) => {
+export const Dashboard = ({ viewComponent }) => {
     return (
         <div className="dashboard-layout" style={{ display: 'flex', minHeight: '100vh' }}>
             <Sidebar />

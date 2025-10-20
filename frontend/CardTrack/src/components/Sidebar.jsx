@@ -1,5 +1,6 @@
 import React from 'react';
-import { useAuth } from '../useAuth.js';
+import { useContext } from 'react';
+import { AuthContext } from '../context/AuthContext.jsx';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const menuItems = [
@@ -10,8 +11,8 @@ const menuItems = [
     { id: 'settings', label: 'Opciones y Seguridad', path: '/settings' },
 ];
 
-const Sidebar = () => {
-    const { logout } = useAuth();
+export const Sidebar = () => {
+    const { logout } = useContext(AuthContext);
     const navigate = useNavigate();
     const location = useLocation();
 

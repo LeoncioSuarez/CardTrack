@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const Settings = () => {
+export const Settings = () => {
     const [isDarkMode, setIsDarkMode] = useState(() => {
         return localStorage.getItem('cardtrack-darkmode') === 'true';
     });
