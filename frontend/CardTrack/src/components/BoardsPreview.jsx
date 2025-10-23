@@ -42,9 +42,23 @@ const BoardsPreview = () => {
   };
 
   const handleDeleteBoard = async (board) => {
-    if (!window.confirm(`¿Eliminar el tablero "${board.title}"?`)) return;
+    // Only allow delete if current user is owner
+    const isOwner = board.user === user?.id || board.user_id === user?.id || board.owner === user?.id;
+    if (isOwner) {
+      if (!window.confirm(`¿Eliminar el tablero "${board.title}"?`)) return;
+      try {
+        await (await import('../utils/boardApi')).deleteBoard(board.id, token);
+        setBoards(prev => prev.filter(b => b.id !== board.id));
+      } catch (e) {
+        alert(e.message);
+      }
+      return;
+    }
+
+    // If not owner, let user "leave" the board
+    if (!window.confirm(`¿Abandonar el tablero "${board.title}"?`)) return;
     try {
-      await (await import('../utils/boardApi')).deleteBoard(board.id, token);
+      await (await import('../utils/boardApi')).leaveBoard(board.id, token);
       setBoards(prev => prev.filter(b => b.id !== board.id));
     } catch (e) {
       alert(e.message);
@@ -74,7 +88,9 @@ const BoardsPreview = () => {
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button className="secondary-button" onClick={() => handleOpenBoard(board.id)}>Editar</button>
-                    <button className="danger-button" onClick={() => handleDeleteBoard(board)}>Eliminar</button>
+                    <button className="danger-button" onClick={() => handleDeleteBoard(board)}>{/* label determined in handler */}
+                      { (board.user === user?.id || board.user_id === user?.id || board.owner === user?.id) ? 'Eliminar' : 'Abandonar' }
+                    </button>
                   </div>
                 </div>
               </div>

@@ -47,10 +47,30 @@ class BoardSerializer(serializers.ModelSerializer):
 
 
 class BoardMembershipSerializer(serializers.ModelSerializer):
+    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=False)
+    email = serializers.EmailField(write_only=True, required=False)
+    user_email = serializers.SerializerMethodField(read_only=True)
+    user_name = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = BoardMembership
-        fields = ['id', 'board', 'user', 'role', 'invited_at']
+        # include 'email' (write-only) so serializer can accept invites by email
+        fields = ['id', 'board', 'user', 'email', 'user_name', 'user_email', 'role', 'invited_at']
         read_only_fields = ['id', 'board', 'invited_at']
+
+    def get_user_email(self, obj):
+        return obj.user.email if obj and obj.user else None
+
+    def get_user_name(self, obj):
+        return obj.user.name if obj and obj.user else None
+
+    def create(self, validated_data):
+        # support creating membership by providing 'email' instead of user PK
+        email = validated_data.pop('email', None)
+        if email and not validated_data.get('user'):
+            user_obj, _ = User.objects.get_or_create(email=email, defaults={'name': email.split('@')[0]})
+            validated_data['user'] = user_obj
+        return super().create(validated_data)
 
 
 class UserSerializer(serializers.ModelSerializer):
