@@ -36,6 +36,10 @@ export const BoardEditor = () => {
   const [newColumn, setNewColumn] = useState({ title: '', color: '#007ACF' });
 
   const [showUsersModal, setShowUsersModal] = useState(false);
+  const [members, setMembers] = useState([]);
+  const [currentUserRole, setCurrentUserRole] = useState(null);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteLoading, setInviteLoading] = useState(false);
 
   const headerRefs = useRef(new Map());
   const [maxHeaderHeight, setMaxHeaderHeight] = useState(0);
@@ -91,7 +95,22 @@ export const BoardEditor = () => {
   useEffect(() => {
     if (!token || !boardId) return;
     loadBoardAndColumns();
-  }, [boardId, token, loadBoardAndColumns]);
+    // preload members if modal open
+    if (showUsersModal) {
+      (async () => {
+        try {
+          const m = await boardApi.getMembers(boardId, token);
+          setMembers(m);
+          // compute current user role using AuthContext user email when available
+          const myEmail = (typeof user !== 'undefined' && user && user.email) ? user.email : null;
+          const me = myEmail ? m.find(x => x.user_email === myEmail) : null;
+          setCurrentUserRole(me ? me.role : null);
+        } catch (e) {
+          console.warn('No se pudieron cargar los miembros', e);
+        }
+      })();
+    }
+  }, [boardId, token, loadBoardAndColumns, showUsersModal, user]);
 
   const createColumn = async (title, color) => {
     const position = columns.length;
@@ -427,12 +446,76 @@ export const BoardEditor = () => {
           <div className="modal-content">
             <div className="modal-title">Usuarios autorizados</div>
             <div className="main-card" style={{ padding: 12 }}>
+              <div style={{ marginBottom: 8 }}>
+                <input
+                  type="email"
+                  placeholder="Correo a invitar"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  style={{ width: '70%', padding: 6, marginRight: 8 }}
+                />
+                <button
+                  className="main-button main-button--small"
+                  disabled={inviteLoading || !inviteEmail}
+                  onClick={async () => {
+                    if (!inviteEmail) return;
+                    setInviteLoading(true);
+                    try {
+                      await boardApi.inviteByEmail(boardId, token, inviteEmail, 'viewer');
+                      // reload members
+                      const m = await boardApi.getMembers(boardId, token);
+                      setMembers(m);
+                      setInviteEmail('');
+                    } catch (err) {
+                      alert(err.message || 'Error al invitar');
+                    } finally {
+                      setInviteLoading(false);
+                    }
+                  }}
+                >Invitar</button>
+              </div>
+
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                <li style={{ padding: '6px 0', borderBottom: '1px solid var(--color-border)' }}>
-                  <strong>{user?.name || user?.email || 'Usuario actual'}</strong>
-                  <div style={{ color: 'var(--color-secondary-text)', fontSize: '0.9em' }}>{user?.email}</div>
-                  <div style={{ marginTop: 4 }}><span className="column-tag">Propietario</span></div>
-                </li>
+                {members.map((m) => (
+                  <li key={m.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <strong>{m.user_name || m.user}</strong>
+                      <div style={{ color: 'var(--color-secondary-text)', fontSize: '0.9em' }}>{m.user_email || m.user}</div>
+                      <div style={{ marginTop: 6 }}>
+                        <span className="column-tag">{m.role === 'owner' ? 'Propietario' : m.role === 'editor' ? 'Editor' : 'Visitante'}</span>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      {/**
+                       * Render select only if current user can act on this member.
+                       * Rules (frontend mirror of backend):
+                       * - owner: can change viewer<->editor and owner (but we hide owner option UX by default)
+                       * - editor: can only change viewer -> editor
+                       */}
+                      {currentUserRole && m.role !== 'owner' && (currentUserRole === 'owner' || (currentUserRole === 'editor' && m.role === 'viewer')) ? (
+                        <select value={m.role} onChange={async (e) => {
+                          const newRole = e.target.value;
+                          // hide owner option in UI so frontend doesn't try to set it unless owner explicitly handles it
+                          if (newRole === 'owner' && currentUserRole !== 'owner') {
+                            alert('No tienes permiso para asignar owner');
+                            return;
+                          }
+                          try {
+                            await boardApi.updateMemberRole(boardId, m.id, token, newRole);
+                            const updated = await boardApi.getMembers(boardId, token);
+                            setMembers(updated);
+                            setCurrentUserRole(updated.find(x => x.user_email === (token && token.replace('fake-token-','')))?.role || currentUserRole);
+                          } catch (err) {
+                            alert(err.message || 'No se pudo cambiar el rol');
+                          }
+                        }}>
+                          <option value="viewer">Visitante</option>
+                          <option value="editor">Editor</option>
+                        </select>
+                      ) : null}
+                    </div>
+                  </li>
+                ))}
               </ul>
             </div>
             <div className="modal-actions">

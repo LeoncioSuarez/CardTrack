@@ -98,6 +98,53 @@ export async function deleteBoard(boardId, token) {
   return true;
 }
 
+export async function getMembers(boardId, token) {
+  const res = await fetch(`${API_BASE_URL}/boards/${boardId}/members/`, {
+    method: 'GET',
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw new Error('No se pudo obtener los miembros');
+  return res.json();
+}
+
+export async function inviteByEmail(boardId, token, email, role = 'viewer') {
+  const res = await fetch(`${API_BASE_URL}/boards/${boardId}/members/`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify({ email, role }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || (err.email ? err.email.join(', ') : 'No se pudo invitar al usuario'));
+  }
+  return res.json();
+}
+
+export async function updateMemberRole(boardId, memberId, token, role) {
+  const res = await fetch(`${API_BASE_URL}/boards/${boardId}/members/${memberId}/`, {
+    method: 'PATCH',
+    headers: authHeaders(token),
+    body: JSON.stringify({ role }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'No se pudo actualizar el rol');
+  }
+  return res.json();
+}
+
+export async function leaveBoard(boardId, token) {
+  const res = await fetch(`${API_BASE_URL}/boards/${boardId}/leave/`, {
+    method: 'POST',
+    headers: authHeaders(token),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'No se pudo abandonar el tablero');
+  }
+  return true;
+}
+
 export default {
   getBoard,
   getColumns,
@@ -107,4 +154,8 @@ export default {
   createCard,
   updateCard,
   deleteCard,
+  getMembers,
+  inviteByEmail,
+  updateMemberRole,
+  leaveBoard,
 };
