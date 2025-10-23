@@ -46,6 +46,56 @@ class Board(models.Model):
         return f"{self.title} ({self.user.email})"
 
 
+class BoardMembership(models.Model):
+    """Membership and roles per board.
+
+    Roles:
+    - owner: full control (typically the Board.user)
+    - editor: can modify board content (columns/cards), invite viewers
+    - viewer: read-only access
+    """
+
+    ROLE_OWNER = 'owner'
+    ROLE_EDITOR = 'editor'
+    ROLE_VIEWER = 'viewer'
+    ROLE_CHOICES = [
+        (ROLE_OWNER, 'Owner'),
+        (ROLE_EDITOR, 'Editor'),
+        (ROLE_VIEWER, 'Viewer'),
+    ]
+
+    board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name='memberships')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='memberships')
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default=ROLE_VIEWER)
+    invited_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('board', 'user')
+        indexes = [
+            models.Index(fields=['board', 'user']),
+        ]
+        verbose_name = 'Board Membership'
+        verbose_name_plural = 'Board Memberships'
+
+    def __str__(self):
+        return f"{self.user.email} -> {self.board.title} ({self.role})"
+
+
+# Ensure board owner is always recorded as a membership with role=owner
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+
+@receiver(post_save, sender=Board)
+def ensure_owner_membership(sender, instance: Board, created: bool, **kwargs):
+    # Create or ensure owner membership exists for the board owner
+    BoardMembership.objects.get_or_create(
+        board=instance,
+        user=instance.user,
+        defaults={'role': BoardMembership.ROLE_OWNER},
+    )
+
+
 #   Column
 class Column(models.Model):
     board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name="columns")
@@ -105,3 +155,4 @@ class CarouselImage(models.Model):
 
     def __str__(self):
         return self.title or f"CarouselImage #{self.pk}"
+    

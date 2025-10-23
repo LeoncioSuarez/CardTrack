@@ -58,10 +58,10 @@ INSTALLED_APPS = [
     'Product',
 ]
 
-# Django REST Framework configuration (kept as-is to avoid behavior changes)
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'Product.authentication.FakeTokenAuthentication',
+        # 'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -161,10 +161,15 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # CORS configuration (env-driven with safe defaults for dev)
 _env_cors_origins = _get_list_from_env('CORS_ALLOWED_ORIGINS')
-CORS_ALLOWED_ORIGINS = _env_cors_origins if _env_cors_origins is not None else [
-    "http://localhost:5173",
-    "http://127.0.0.1:8000",
-]
+# In development, allow all origins unless explicitly configured via env.
+if DEBUG and _env_cors_origins is None:
+    CORS_ALLOW_ALL_ORIGINS = True
+    CORS_ALLOWED_ORIGINS = []
+else:
+    CORS_ALLOWED_ORIGINS = _env_cors_origins if _env_cors_origins is not None else [
+        "http://localhost:5173",
+        "http://127.0.0.1:8000",
+    ]
 
 # Allow credentials and typical headers/methods for dev
 CORS_ALLOW_CREDENTIALS = True
