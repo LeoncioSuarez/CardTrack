@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
 from .models import User, Board, Column, Card, CarouselImage
+from .models import BoardMembership
 from .models import Release
 
 
@@ -43,6 +44,13 @@ class BoardSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'user': {'read_only': True}
         }
+
+
+class BoardMembershipSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BoardMembership
+        fields = ['id', 'board', 'user', 'role', 'invited_at']
+        read_only_fields = ['id', 'board', 'invited_at']
 
 
 class UserSerializer(serializers.ModelSerializer):

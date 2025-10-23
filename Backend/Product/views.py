@@ -1,4 +1,5 @@
 from django.utils import timezone
+from django.db import models
 import os
 from pathlib import Path
 from rest_framework.decorators import action
@@ -9,7 +10,9 @@ from rest_framework.exceptions import NotFound
 from django.contrib.auth.hashers import check_password
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from .models import User, Board, Column, Card, CarouselImage
+from .models import BoardMembership
 from .serializers import UserSerializer, BoardSerializer, ColumnSerializer, CardSerializer, CarouselImageSerializer
+from .serializers import BoardMembershipSerializer
 from .models import Release
 from .serializers import ReleaseSerializer
 import logging
@@ -113,21 +116,64 @@ class BoardViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         # Optimización para evitar Queries N+1
+        # Incluir boards donde el usuario es owner o miembro
         return (
             Board.objects
-            .filter(user=self.request.user)
+            .filter(models.Q(user=self.request.user) | models.Q(memberships__user=self.request.user))
+            .distinct()
             .prefetch_related('columns__cards')
         )
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
+
+class BoardMembershipViewSet(viewsets.ModelViewSet):
+    serializer_class = BoardMembershipSerializer
+
+    def get_queryset(self):
+        board_id = self.kwargs.get('board_pk')
+        if not board_id:
+            return BoardMembership.objects.none()
+        qs = BoardMembership.objects.select_related('user', 'board').filter(board_id=board_id)
+
+        # Permitir listar solo si el request.user es owner del board o ya es miembro
+        is_owner = Board.objects.filter(id=board_id, user=self.request.user).exists()
+        is_member = qs.filter(user=self.request.user).exists()
+        # Safe methods (GET/HEAD/OPTIONS): owner o miembro pueden ver
+        if self.request.method in ('GET', 'HEAD', 'OPTIONS'):
+            if not (is_owner or is_member):
+                return BoardMembership.objects.none()
+            return qs
+        # Unsafe methods (POST/PUT/PATCH/DELETE): sólo owner
+        if not is_owner:
+            return BoardMembership.objects.none()
+        return qs
+
+    def perform_create(self, serializer):
+        board_id = self.kwargs.get('board_pk')
+        try:
+            # Solo el owner del board puede invitar/añadir miembros
+            board = Board.objects.get(id=board_id, user=self.request.user)
+        except Board.DoesNotExist:
+            raise NotFound('Board no encontrado o sin permiso para modificar miembros.')
+        serializer.save(board=board)
+
+    def perform_destroy(self, instance):
+        # Solo el owner puede remover miembros
+        if instance.board.user_id != self.request.user.id:
+            raise NotFound('No tienes permiso para remover miembros de este board.')
+        return super().perform_destroy(instance)
+
 class ColumnViewSet(viewsets.ModelViewSet):
     serializer_class = ColumnSerializer
 
     def get_queryset(self):
         board_id = self.kwargs.get('board_pk')
-        qs = Column.objects.filter(board__user=self.request.user)
+        qs = Column.objects.filter(
+            models.Q(board__user=self.request.user) |
+            models.Q(board__memberships__user=self.request.user)
+        ).distinct()
         if board_id:
             qs = qs.filter(board_id=board_id)
 
@@ -137,10 +183,18 @@ class ColumnViewSet(viewsets.ModelViewSet):
         board_id = self.kwargs.get('board_pk')
         if not board_id:
             raise NotFound('Board no especificado.')
-        try:
-            board = Board.objects.get(id=board_id, user=self.request.user)
-        except Board.DoesNotExist:
-            raise NotFound('Board no encontrado.')
+        # Require owner or editor to create columns
+        board = (
+            Board.objects
+            .filter(id=board_id)
+            .filter(
+                models.Q(user=self.request.user) |
+                models.Q(memberships__user=self.request.user, memberships__role__in=[BoardMembership.ROLE_OWNER, BoardMembership.ROLE_EDITOR])
+            )
+            .first()
+        )
+        if not board:
+            raise NotFound('Board no encontrado o sin permisos para modificar.')
         serializer.save(board=board)
 
 
@@ -158,8 +212,12 @@ class CardViewSet(viewsets.ModelViewSet):
             .filter(
                 column__id=column_id,
                 column__board__id=board_id,
-                column__board__user=self.request.user,
             )
+            .filter(
+                models.Q(column__board__user=self.request.user) |
+                models.Q(column__board__memberships__user=self.request.user)
+            )
+            .distinct()
         )
 
     def perform_create(self, serializer):
@@ -167,10 +225,17 @@ class CardViewSet(viewsets.ModelViewSet):
         column_id = self.kwargs.get('column_pk')
         if not board_id or not column_id:
             raise NotFound('Ruta inválida para crear la tarjeta.')
-        try:
-            column = Column.objects.get(id=column_id, board__id=board_id, board__user=self.request.user)
-        except Column.DoesNotExist:
-            raise NotFound('Columna no encontrada.')
+        column = (
+            Column.objects
+            .filter(id=column_id, board__id=board_id)
+            .filter(
+                models.Q(board__user=self.request.user) |
+                models.Q(board__memberships__user=self.request.user, board__memberships__role__in=[BoardMembership.ROLE_OWNER, BoardMembership.ROLE_EDITOR])
+            )
+            .first()
+        )
+        if not column:
+            raise NotFound('Columna no encontrada o sin permisos para modificar.')
         serializer.save(column=column)
 
 
