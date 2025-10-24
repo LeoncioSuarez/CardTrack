@@ -100,8 +100,7 @@ Asegúrate de tener instalado:
 2.  **Instalar dependencias de Node:**
     ```bash
     npm install
-    # o
-    yarn install
+
     ```
 
 3.  **Iniciar la Aplicación React:**
