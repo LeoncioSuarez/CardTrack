@@ -218,6 +218,12 @@ class BoardMembershipViewSet(viewsets.ModelViewSet):
         # fallback: deny
         raise NotFound('No tienes permiso para modificar miembros de este board.')
 
+    def perform_destroy(self, instance):
+        # Only the board owner can remove members
+        if instance.board.user_id != self.request.user.id:
+            raise NotFound('No tienes permiso para remover miembros de este board.')
+        return super().perform_destroy(instance)
+
 
 class BoardViewSet(viewsets.ModelViewSet):
     serializer_class = BoardSerializer
@@ -256,9 +262,9 @@ class BoardViewSet(viewsets.ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def perform_destroy(self, instance):
-        # Solo el owner puede remover miembros
-        if instance.board.user_id != self.request.user.id:
-            raise NotFound('No tienes permiso para remover miembros de este board.')
+        # Only owner can delete board
+        if instance.user_id != self.request.user.id:
+            raise NotFound('No tienes permiso para eliminar este tablero.')
         return super().perform_destroy(instance)
 
     @action(detail=False, methods=["post"], url_path="invite")
