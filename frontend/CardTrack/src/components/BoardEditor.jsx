@@ -30,7 +30,7 @@ export const BoardEditor = () => {
   const [draggingCard, setDraggingCard] = useState(null);
 
   const [showTaskModal, setShowTaskModal] = useState(false);
-  const [taskForm, setTaskForm] = useState({ columnId: '', title: '', description: '' });
+  const [taskForm, setTaskForm] = useState({ columnId: '', title: '', description: '', type: 'description', checklist: [] });
 
   const [showAddColumnModal, setShowAddColumnModal] = useState(false);
   const [newColumn, setNewColumn] = useState({ title: '', color: '#007ACF' });
@@ -38,6 +38,8 @@ export const BoardEditor = () => {
   const [showUsersModal, setShowUsersModal] = useState(false);
   const [members, setMembers] = useState([]);
   const [currentUserRole, setCurrentUserRole] = useState(null);
+  const [editingRoleMemberId, setEditingRoleMemberId] = useState(null);
+  const [editingRoleValue, setEditingRoleValue] = useState(null);
   const [viewerNoticeVisible, setViewerNoticeVisible] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteLoading, setInviteLoading] = useState(false);
@@ -125,6 +127,19 @@ export const BoardEditor = () => {
     }
   }, [boardId, token, loadBoardAndColumns, showUsersModal, user]);
 
+  // helper to normalize member image paths
+  const backendBase = API_BASE_URL.replace(/\/api\/?$/, '');
+  const mediaBase = backendBase + '/media/';
+  const defaultMemberProfile = mediaBase + 'profilepic/default.jpg';
+  const normalizeMemberImage = (img) => {
+    if (!img) return defaultMemberProfile;
+    if (typeof img !== 'string') return defaultMemberProfile;
+    if (img.startsWith('http://') || img.startsWith('https://')) return img;
+    const cleaned = img.replace(/^\/+/, '');
+    if (cleaned.startsWith('media/')) return backendBase + '/' + cleaned;
+    return mediaBase + cleaned;
+  };
+
     // Show viewer notice when we know the user's role is 'viewer' and it hasn't been dismissed in this session
     useEffect(() => {
       if (currentUserRole === 'viewer') {
@@ -187,13 +202,13 @@ export const BoardEditor = () => {
       alert('Primero crea una columna.');
       return;
     }
-    setTaskForm({ columnId: String(columns[0].id), title: '', description: '' });
+    setTaskForm({ columnId: String(columns[0].id), title: '', description: '', type: 'description', checklist: [] });
     setShowTaskModal(true);
   };
 
   const closeTaskModal = () => {
     setShowTaskModal(false);
-    setTaskForm({ columnId: '', title: '', description: '' });
+    setTaskForm({ columnId: '', title: '', description: '', type: 'description', checklist: [] });
   };
 
   const submitTaskModal = async () => {
@@ -204,7 +219,29 @@ export const BoardEditor = () => {
     if (!col) return;
     try {
       const position = (col.cards || []).length;
-      await createCard(col.id, title, taskForm.description.trim(), position);
+      // If checklist mode, serialize checklist into description as a simple markdown-like list
+      let payloadDescription = '';
+      if (taskForm.type === 'checklist' && Array.isArray(taskForm.checklist) && taskForm.checklist.length) {
+        payloadDescription = (taskForm.checklist || []).map(i => `- [ ] ${i}`).join('\n');
+      } else {
+        payloadDescription = (taskForm.description || '').trim();
+      }
+      if (taskForm.editingCardId) {
+        // editing existing card
+        const cardId = taskForm.editingCardId;
+        const origColumnId = taskForm.originalColumnId ? Number(taskForm.originalColumnId) : Number(colId);
+        const payload = { title, description: payloadDescription };
+        const newColumnId = Number(taskForm.columnId);
+        if (newColumnId !== origColumnId) {
+          // request backend to move column
+          payload.column = newColumnId;
+          const target = columns.find(c => c.id === newColumnId);
+          payload.position = target ? (target.cards || []).length : 0;
+        }
+        await updateCard(origColumnId, cardId, payload);
+      } else {
+        await createCard(col.id, title, payloadDescription, position);
+      }
       closeTaskModal();
       await loadBoardAndColumns();
     } catch (e) {
@@ -253,14 +290,29 @@ export const BoardEditor = () => {
   };
 
   const handleEditTask = async (column, card) => {
-    const newTitle = window.prompt('Nuevo nombre de la tarea:', card.title);
-    if (newTitle === null) return;
-    const newDescription = window.prompt('Nueva descripción (opcional):', card.description || '');
+    // Open edit modal instead of prompt. Populate form with card data.
     try {
-      await updateCard(column.id, card.id, { title: newTitle.trim(), description: (newDescription || '').trim() });
-      await loadBoardAndColumns();
+      const desc = card.description || '';
+      const lines = desc.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      const items = lines.map((l) => {
+        const m = l.match(/^[-*]\s*\[(x|X| |)\]\s*(.*)$/);
+        if (m) return { isChecklist: true, checked: !!m[1] && m[1].toLowerCase() === 'x', text: m[2] };
+        return { isChecklist: false, text: l };
+      });
+      const allChecklist = items.length > 0 && items.every(i => i.isChecklist);
+      const checklist = allChecklist ? items.map(i => i.text) : [];
+      setTaskForm({
+        columnId: String(column.id),
+        title: card.title || '',
+        description: allChecklist ? '' : (card.description || ''),
+        type: allChecklist ? 'checklist' : 'description',
+        checklist,
+        editingCardId: card.id,
+        originalColumnId: column.id,
+      });
+      setShowTaskModal(true);
     } catch (e) {
-      alert(e.message);
+      alert(e.message || 'No se pudo abrir el editor de la tarea');
     }
   };
 
@@ -526,42 +578,67 @@ export const BoardEditor = () => {
 
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {members.map((m) => (
-                  <li key={m.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div>
-                      <strong>{m.user_name || m.user}</strong>
-                      <div style={{ color: 'var(--color-secondary-text)', fontSize: '0.9em' }}>{m.user_email || m.user}</div>
-                      <div style={{ marginTop: 6 }}>
-                        <span className="column-tag">{m.role === 'owner' ? 'Propietario' : m.role === 'editor' ? 'Editor' : 'Visitante'}</span>
+                  <li key={m.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--color-border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 52, height: 52, borderRadius: 6, overflow: 'hidden', background: 'var(--color-input-background)', flex: '0 0 auto' }}>
+                        <img src={normalizeMemberImage(m.user_profilepicture || m.profilepicture || m.avatar || '')} alt="avatar" onError={(e) => { e.currentTarget.src = defaultMemberProfile; }} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      {/**
-                       * Render select only if current user can act on this member.
-                       * Rules (frontend mirror of backend):
-                       * - owner: can change viewer<->editor and owner (but we hide owner option UX by default)
-                       * - editor: can only change viewer -> editor
-                       */}
-                      {currentUserRole && m.role !== 'owner' && (currentUserRole === 'owner' || (currentUserRole === 'editor' && m.role === 'viewer')) ? (
-                        <select value={m.role} onChange={async (e) => {
-                          const newRole = e.target.value;
-                          // hide owner option in UI so frontend doesn't try to set it unless owner explicitly handles it
-                          if (newRole === 'owner' && currentUserRole !== 'owner') {
-                            alert('No tienes permiso para asignar owner');
-                            return;
-                          }
-                          try {
-                            await boardApi.updateMemberRole(boardId, m.id, token, newRole);
-                            const updated = await boardApi.getMembers(boardId, token);
-                            setMembers(updated);
-                            setCurrentUserRole(updated.find(x => x.user_email === (token && token.replace('fake-token-','')))?.role || currentUserRole);
-                          } catch (err) {
-                            alert(err.message || 'No se pudo cambiar el rol');
-                          }
-                        }}>
-                          <option value="viewer">Visitante</option>
-                          <option value="editor">Editor</option>
-                        </select>
-                      ) : null}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, color: 'var(--color-primary-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.user_name || m.user}</div>
+                        <div style={{ color: 'var(--color-secondary-text)', fontSize: '0.9em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.user_email || m.user}</div>
+                      </div>
+                      <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {editingRoleMemberId === m.id ? (
+                          <select value={editingRoleValue} onChange={async (e) => {
+                            const newRole = e.target.value;
+                            if (newRole === 'owner' && currentUserRole !== 'owner') {
+                              alert('No tienes permiso para asignar owner');
+                              return;
+                            }
+                            try {
+                              await boardApi.updateMemberRole(boardId, m.id, token, newRole);
+                              const updated = await boardApi.getMembers(boardId, token);
+                              setMembers(updated);
+                              setEditingRoleMemberId(null);
+                              setEditingRoleValue(null);
+                            } catch (err) {
+                              alert(err.message || 'No se pudo cambiar el rol');
+                            }
+                          }} onBlur={() => { setEditingRoleMemberId(null); setEditingRoleValue(null); }}>
+                            <option value="viewer">Visitante</option>
+                            <option value="editor">Editor</option>
+                            {currentUserRole === 'owner' ? <option value="owner">Propietario</option> : null}
+                          </select>
+                        ) : (
+                          <div className="member-role-tag" style={{ cursor: (currentUserRole === 'owner' || (currentUserRole === 'editor' && m.role === 'viewer')) ? 'pointer' : 'default' }} onDoubleClick={() => {
+                            if (currentUserRole === 'owner' || (currentUserRole === 'editor' && m.role === 'viewer')) {
+                              setEditingRoleMemberId(m.id);
+                              setEditingRoleValue(m.role);
+                            }
+                          }}>{m.role === 'owner' ? 'Propietario' : m.role === 'editor' ? 'Editor' : 'Visitante'}</div>
+                        )}
+
+                        <div style={{ display: 'flex', gap: 8, marginLeft: 6 }}>
+                          {!((m.role === 'owner')) && currentUserRole && (currentUserRole === 'owner' || (currentUserRole === 'editor' && m.role === 'viewer')) ? (
+                            <button className="icon-button" title="Cambiar rol" onClick={() => { setEditingRoleMemberId(m.id); setEditingRoleValue(m.role); }}>
+                              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 21l3-1 11-11 2 2L8 22l-5 0z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            </button>
+                          ) : null}
+                          {currentUserRole === 'owner' && m.role !== 'owner' ? (
+                            <button className="icon-button icon-button--danger" title="Eliminar" onClick={async () => {
+                              if (!window.confirm(`¿Eliminar el acceso de ${m.user_name || m.user}?`)) return;
+                              try {
+                                await boardApi.updateMemberRole(boardId, m.id, token, 'viewer');
+                                // or call a delete member endpoint if exists
+                                const updated = await boardApi.getMembers(boardId, token);
+                                setMembers(updated);
+                              } catch (err) { alert(err.message || 'Error'); }
+                            }}>
+                              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M8 6v14a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
                     </div>
                   </li>
                 ))}
