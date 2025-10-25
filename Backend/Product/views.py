@@ -112,22 +112,6 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response({"error": "Contraseña incorrecta"}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class BoardViewSet(viewsets.ModelViewSet):
-    serializer_class = BoardSerializer
-
-    def get_queryset(self):
-        # Optimización para evitar Queries N+1
-        # Incluir boards donde el usuario es owner o miembro
-        return (
-            Board.objects
-            .filter(models.Q(user=self.request.user) | models.Q(memberships__user=self.request.user))
-            .distinct()
-            .prefetch_related('columns__cards')
-        )
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
 class BoardMembershipViewSet(viewsets.ModelViewSet):
     serializer_class = BoardMembershipSerializer
 
@@ -260,12 +244,6 @@ class BoardViewSet(viewsets.ModelViewSet):
 
         membership.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-
-    def perform_destroy(self, instance):
-        # Only owner can delete board
-        if instance.user_id != self.request.user.id:
-            raise NotFound('No tienes permiso para eliminar este tablero.')
-        return super().perform_destroy(instance)
 
     @action(detail=False, methods=["post"], url_path="invite")
     def invite(self, request, board_pk=None):

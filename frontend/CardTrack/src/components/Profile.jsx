@@ -94,8 +94,11 @@ export const Profile = () => {
                     // Note: we intentionally append the file only once (key 'profilepicture') to avoid duplicate files on the server.
                     try {
                         await updateUserApi(user.id, token, fd);
-                        // success
-                        await refreshUser();
+                        // success: refresh user and update preview with the fresh profilepicture
+                        const refreshed = await refreshUser();
+                        if (refreshed) {
+                            setPreviewSrc(normalizeImage(refreshed.profilepicture));
+                        }
                         setEditing(false);
                         setFileToUpload(null);
                         setErrorMsg(null);

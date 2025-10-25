@@ -38,6 +38,7 @@ export const BoardEditor = () => {
   const [showUsersModal, setShowUsersModal] = useState(false);
   const [members, setMembers] = useState([]);
   const [currentUserRole, setCurrentUserRole] = useState(null);
+  const [viewerNoticeVisible, setViewerNoticeVisible] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteLoading, setInviteLoading] = useState(false);
 
@@ -82,15 +83,27 @@ export const BoardEditor = () => {
         boardApi.getColumns(boardId, token),
       ]);
       setBoard(boardData);
-      const sortedCols = [...columnsData].sort((a, b) => a.position - b.position)
+      const sortedCols = [...columnsData]
+        .sort((a, b) => a.position - b.position)
         .map(col => ({ ...col, cards: (col.cards || []).sort((a, b) => a.position - b.position) }));
       setColumns(sortedCols);
+      // load members to determine current user role (so UI can be read-only for viewers)
+      try {
+        const m = await boardApi.getMembers(boardId, token);
+        setMembers(m);
+        const myEmail = (typeof user !== 'undefined' && user && user.email) ? user.email : null;
+        const me = myEmail ? m.find(x => x.user_email === myEmail) : null;
+        setCurrentUserRole(me ? me.role : null);
+      } catch (err) {
+        // don't block board load if members can't be fetched
+        console.warn('Could not load members to compute role', err);
+      }
     } catch (e) {
       setError(e.message);
     } finally {
       setLoading(false);
     }
-  }, [boardId, token]);
+  }, [boardId, token, user]);
 
   useEffect(() => {
     if (!token || !boardId) return;
@@ -111,6 +124,20 @@ export const BoardEditor = () => {
       })();
     }
   }, [boardId, token, loadBoardAndColumns, showUsersModal, user]);
+
+    // Show viewer notice when we know the user's role is 'viewer' and it hasn't been dismissed in this session
+    useEffect(() => {
+      if (currentUserRole === 'viewer') {
+        try {
+          const dismissed = sessionStorage.getItem(`viewer_notice_dismissed_board_${boardId}`);
+          if (!dismissed) setViewerNoticeVisible(true);
+        } catch (err) {
+          void err;
+        }
+      } else {
+        setViewerNoticeVisible(false);
+      }
+    }, [currentUserRole, boardId]);
 
   const createColumn = async (title, color) => {
     const position = columns.length;
@@ -254,6 +281,8 @@ export const BoardEditor = () => {
   };
 
   const onColumnDragStart = (e, columnId) => {
+    // prevent column dragging for viewers
+    if (currentUserRole === 'viewer') return;
     setDraggingColumnId(columnId);
     e.dataTransfer.setData('text/column-id', String(columnId));
     e.dataTransfer.effectAllowed = 'move';
@@ -265,6 +294,7 @@ export const BoardEditor = () => {
 
   const onColumnDrop = async (e, targetColumnId) => {
     e.preventDefault();
+    if (currentUserRole === 'viewer') return;
     const sourceId = draggingColumnId || Number(e.dataTransfer.getData('text/column-id'));
     if (!sourceId || sourceId === targetColumnId) return;
 
@@ -289,6 +319,8 @@ export const BoardEditor = () => {
   };
 
   const onCardDragStart = (e, card, fromColumnId) => {
+    // prevent card dragging for viewers
+    if (currentUserRole === 'viewer') return;
     setDraggingCard({ cardId: card.id, fromColumnId });
     e.dataTransfer.setData('application/x-card', JSON.stringify({ cardId: card.id, fromColumnId }));
     e.dataTransfer.effectAllowed = 'move';
@@ -301,6 +333,7 @@ export const BoardEditor = () => {
 
   const onCardDropOnListEnd = async (e, targetColumn) => {
     e.preventDefault();
+    if (currentUserRole === 'viewer') return;
     const data = draggingCard || JSON.parse(e.dataTransfer.getData('application/x-card') || '{}');
     if (!data || !data.cardId) return;
 
@@ -313,6 +346,7 @@ export const BoardEditor = () => {
 
   const onCardDropOnItem = async (e, targetColumn, targetCard) => {
     e.preventDefault();
+    if (currentUserRole === 'viewer') return;
     const data = draggingCard || JSON.parse(e.dataTransfer.getData('application/x-card') || '{}');
     if (!data || !data.cardId) return;
 
@@ -327,6 +361,7 @@ export const BoardEditor = () => {
   };
 
   const moveCard = async (sourceColumnId, cardId, targetColumnId, targetIndex) => {
+    if (currentUserRole === 'viewer') return;
     if (!sourceColumnId || !cardId) return;
 
     const currentCols = [...columns].map(c => ({ ...c, cards: [...(c.cards || [])] }));
@@ -380,11 +415,20 @@ export const BoardEditor = () => {
 
   return (
     <div className="board-editor-container">
-      <div className="board-editor-title">
+      <div className={"board-editor-title" + (currentUserRole === 'viewer' ? ' board-editor-title--viewer' : '')}>
         <h1>{board ? board.title : 'Tablero Desconocido'}</h1>
       </div>
 
-      <div className="board-columns-container">
+  <div className={"board-columns-container " + (columns && columns.length > 4 ? 'columns-scroll' : 'columns-fit')}>
+        {currentUserRole === 'viewer' && viewerNoticeVisible && (
+          <div className="viewer-notice" role="status" aria-live="polite">
+            <div className="viewer-notice__text">Actualmente te encuentras con el rango de visitante, por lo que no puedes realizar ningún tipo de cambio en la tabla.</div>
+            <button className="viewer-notice__close" aria-label="Cerrar" onClick={() => {
+              try { sessionStorage.setItem(`viewer_notice_dismissed_board_${boardId}`, '1'); } catch(err) { void err; }
+              setViewerNoticeVisible(false);
+            }}>×</button>
+          </div>
+        )}
         {columns.map((column) => (
           <Column
             key={column.id}
@@ -409,6 +453,7 @@ export const BoardEditor = () => {
             onCardDropOnItem={onCardDropOnItem}
             handleEditTask={handleEditTask}
             handleDeleteTask={handleDeleteTask}
+            currentUserRole={currentUserRole}
           />
         ))}
       </div>
@@ -419,8 +464,12 @@ export const BoardEditor = () => {
           <button className="secondary-button" onClick={() => setShowUsersModal(true)}>Ver usuarios</button>
         </div>
         <div className="board-bottom-bar__right">
-          <button className="main-button main-button--small" onClick={handleAddColumn}>+ Añadir columna</button>
-          <button className="main-button main-button--small" onClick={openTaskModal}>+ Añadir tarea</button>
+          {currentUserRole !== 'viewer' && (
+            <>
+              <button className="main-button main-button--small" onClick={handleAddColumn}>+ Añadir columna</button>
+              <button className="main-button main-button--small" onClick={openTaskModal}>+ Añadir tarea</button>
+            </>
+          )}
         </div>
       </div>
 
