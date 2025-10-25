@@ -1,7 +1,7 @@
 import React from 'react';
 
 // side: 'left' | 'right' | 'both'
-export const ProfileView = ({ user, previewSrc, onPhotoClick, enterEdit, side = 'both' }) => {
+export const ProfileView = ({ user, previewSrc, onPhotoClick, enterEdit, side = 'both', defaultProfile }) => {
   const Left = (
     <div style={{ width: 260, textAlign: 'center', flexShrink: 0 }}>
       <div
@@ -21,7 +21,7 @@ export const ProfileView = ({ user, previewSrc, onPhotoClick, enterEdit, side = 
         }}
       >
         {previewSrc ? (
-          <img src={previewSrc} alt="profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img src={previewSrc} alt="profile" onError={(e) => { if (defaultProfile) e.currentTarget.src = defaultProfile; }} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (
           <div style={{ color: '#999' }}>Sin foto</div>
         )}

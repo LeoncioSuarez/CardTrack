@@ -119,14 +119,14 @@ export const Profile = () => {
         <div className="profile-container">
             <h1 className="profile-title">Mi Perfil</h1>
             <div className="main-card profile-info-box" style={{ display: 'flex', gap: '32px', alignItems: 'flex-start', padding: 24, maxWidth: 1000 }}>
-                <div style={{ width: 260, textAlign: 'center', flexShrink: 0 }}>
+                    <div style={{ width: 260, textAlign: 'center', flexShrink: 0 }}>
                     <input ref={inputFileRef} name="profilepicture" type="file" accept="image/*" style={{ display: 'none' }} onChange={onFileChange} />
-                    <ProfileView user={user} previewSrc={previewSrc} onPhotoClick={onPhotoClick} enterEdit={enterEdit} side="left" />
+                    <ProfileView user={user} previewSrc={previewSrc} onPhotoClick={onPhotoClick} enterEdit={enterEdit} side="left" defaultProfile={defaultProfile} />
                 </div>
 
                 <div style={{ flex: 1 }}>
                     {!editing ? (
-                        <ProfileView user={user} previewSrc={previewSrc} onPhotoClick={onPhotoClick} enterEdit={enterEdit} side="right" />
+                        <ProfileView user={user} previewSrc={previewSrc} onPhotoClick={onPhotoClick} enterEdit={enterEdit} side="right" defaultProfile={defaultProfile} />
                     ) : (
                         <div>
                             {errorMsg && (
