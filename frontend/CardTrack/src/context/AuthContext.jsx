@@ -51,22 +51,31 @@ export const AuthProvider = ({ children }) => {
 
     const refreshUser = async (overrideToken = null, seedUser = null) => {
         const usedToken = overrideToken || token || localStorage.getItem('token');
-        if (!usedToken) return;
+        if (!usedToken) return null;
         try {
             const data = await authApi.getMe(usedToken);
-            setUser({
+            // Add a cache-busting query param to profilepicture so browsers pick up updates
+            let profilepicture = data.profilepicture;
+            if (profilepicture) {
+                const sep = profilepicture.includes('?') ? '&' : '?';
+                profilepicture = profilepicture + sep + 'cb=' + Date.now();
+            }
+            const newUser = {
                 id: data.id || (seedUser && seedUser.id),
                 name: data.name || (seedUser && seedUser.name),
                 email: data.email || (seedUser && seedUser.email),
-                profilepicture: data.profilepicture,
+                profilepicture: profilepicture,
                 aboutme: data.aboutme,
                 registration_date: data.registration_date || data.date_joined,
                 last_login: data.last_login
-            });
+            };
+            setUser(newUser);
             setIsAuthenticated(true);
+            return newUser;
         } catch (err) {
             console.error('refreshUser error', err);
             logout();
+            return null;
         }
     };
 

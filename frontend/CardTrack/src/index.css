@@ -441,6 +441,20 @@ button:disabled, .main-button:disabled {
 }
 .board-editor-title h1 { margin: 0; font-size: 1.6rem; }
 
+/* center the main title horizontally */
+.board-editor-title h1 {
+  width: 100%;
+  text-align: center;
+}
+
+.board-editor-title--viewer {
+  justify-content: center;
+}
+.board-editor-title--viewer h1 {
+  font-size: 2.2rem;
+  text-align: center;
+}
+
 .board-editor-actions {
   display: flex;
   gap: 8px;
@@ -484,7 +498,11 @@ button:disabled, .main-button:disabled {
   flex-direction: column;
   width: 100%;
   height: 100%;
+  /* add extra right padding so the board area doesn't touch the right wall */
+  padding-right: 36px;
 }
+
+/* viewer notice will be positioned relative to the columns area */
 
 /* Prevent the entire page from scrolling when viewing the editor or the auth page.
    Keep internal scrolling where needed (columns horizontal scroll, form internal scroll). */
@@ -500,18 +518,45 @@ button:disabled, .main-button:disabled {
 }
 
 .board-columns-container {
-  display: flex;                
-  flex-direction: row;          
+  display: flex;
+  flex: 1 1 auto;               /* allow container to grow and fill available vertical space */
+  flex-direction: row;
   align-items: flex-start;
-  gap: 0;                        
+  gap: 0;
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: auto;            /* allow vertical scrolling if content exceeds area */
   padding: 1rem;
-  min-height: 60vh;
   background-color: var(--color-surface-background);
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border: 2px solid var(--color-border); /* slightly thicker border to emphasize separation */
+  border-radius: 8px;
   scrollbar-width: thin;
+  position: relative;          /* anchor absolute notices inside the board area */
+  /* increase bottom margin so the board is visually lifted above the bottom bar */
+  margin: 8px 28px 180px 28px; /* top, right, bottom, left - leave visible gaps to right and bottom */
+  /* reduce calculated height so the box sits higher in the viewport */
+  height: calc(100vh - 340px); /* make the board area occupy most of the viewport but leave room for header/footer */
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+}
+
+/* Column sizing modes */
+.board-columns-container.columns-fit {
+  /* up to 4 columns: distribute space evenly, no horizontal scroll */
+  overflow-x: hidden;
+}
+.board-columns-container.columns-fit .board-column {
+  flex: 1 1 0;        /* distribute evenly */
+  min-width: 0;       /* allow shrink below previous min-width */
+  max-width: none;
+}
+
+.board-columns-container.columns-scroll {
+  /* more than 4 columns: allow horizontal scrolling and fixed column width */
+  overflow-x: auto;
+}
+.board-columns-container.columns-scroll .board-column {
+  flex: 0 0 320px;    /* fixed column width when scrolling */
+  min-width: 320px;
+  max-width: 320px;
 }
 .board-columns-container::-webkit-scrollbar {
   height: 8px;
@@ -790,6 +835,39 @@ thead th {
     font-size: 0.85em;
   }
 }
+
+/* Viewer notice: small dismissible info box for users with viewer role */
+.viewer-notice {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  background: var(--color-surface-background);
+  color: var(--color-primary-text);
+  border: 1px solid var(--color-border);
+  padding: 10px 12px;
+  border-radius: 8px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  z-index: 80;
+  max-width: 480px;
+}
+.viewer-notice__text { font-size: 0.95rem; line-height: 1.2; }
+.viewer-notice__close {
+  background: transparent;
+  border: none;
+  color: var(--color-secondary-text);
+  font-size: 1.25rem;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.viewer-notice__close:hover { background: rgba(0,0,0,0.04); color: var(--color-primary-text); }
 
 .inicio-container {
     color: var(--color-primary-text);
