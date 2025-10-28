@@ -35,18 +35,10 @@ export const Settings = () => {
                 <div className="setting-row">
                     <span>Modo Oscuro</span>
                     <div
-                        className="toggle-base"
+                        className={`toggle-base ${isDarkMode ? 'active' : ''}`}
                         onClick={handleToggleDarkMode}
-                        style={{
-                            backgroundColor: isDarkMode ? 'var(--color-accent-primary)' : 'var(--color-secondary-text)',
-                        }}
                     >
-                        <div
-                            className="toggle-circle"
-                            style={{
-                                left: isDarkMode ? '22px' : '2px',
-                            }}
-                        ></div>
+                        <div className="toggle-circle"></div>
                     </div>
                 </div>
             </div>

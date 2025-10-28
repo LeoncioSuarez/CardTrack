@@ -546,14 +546,14 @@ export const BoardEditor = () => {
         <div className="modal-overlay" role="dialog" aria-modal="true">
           <div className="modal-content">
             <div className="modal-title">Usuarios autorizados</div>
-            <div className="main-card" style={{ padding: 12 }}>
-              <div style={{ marginBottom: 8 }}>
+            <div className="main-card modal-main-card">
+              <div className="mb-8">
                 <input
                   type="email"
                   placeholder="Correo a invitar"
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
-                  style={{ width: '70%', padding: 6, marginRight: 8 }}
+                  className="invite-input"
                 />
                 <button
                   className="main-button main-button--small"
@@ -576,18 +576,18 @@ export const BoardEditor = () => {
                 >Invitar</button>
               </div>
 
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              <ul className="members-list">
                 {members.map((m) => (
-                  <li key={m.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--color-border)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{ width: 52, height: 52, borderRadius: 6, overflow: 'hidden', background: 'var(--color-input-background)', flex: '0 0 auto' }}>
-                        <img src={normalizeMemberImage(m.user_profilepicture || m.profilepicture || m.avatar || '')} alt="avatar" onError={(e) => { e.currentTarget.src = defaultMemberProfile; }} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <li key={m.id}>
+                    <div className="member-row">
+                      <div className="member-avatar-box">
+                        <img src={normalizeMemberImage(m.user_profilepicture || m.profilepicture || m.avatar || '')} alt="avatar" onError={(e) => { e.currentTarget.src = defaultMemberProfile; }} />
                       </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 700, color: 'var(--color-primary-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.user_name || m.user}</div>
-                        <div style={{ color: 'var(--color-secondary-text)', fontSize: '0.9em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.user_email || m.user}</div>
+                      <div className="member-info">
+                        <div className="member-name">{m.user_name || m.user}</div>
+                        <div className="member-email">{m.user_email || m.user}</div>
                       </div>
-                      <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div className="member-role-wrapper">
                         {editingRoleMemberId === m.id ? (
                           <select value={editingRoleValue} onChange={async (e) => {
                             const newRole = e.target.value;
@@ -609,8 +609,8 @@ export const BoardEditor = () => {
                             <option value="editor">Editor</option>
                             {currentUserRole === 'owner' ? <option value="owner">Propietario</option> : null}
                           </select>
-                        ) : (
-                          <div className="member-role-tag" style={{ cursor: (currentUserRole === 'owner' || (currentUserRole === 'editor' && m.role === 'viewer')) ? 'pointer' : 'default' }} onDoubleClick={() => {
+                          ) : (
+                          <div className={`member-role-tag ${(currentUserRole === 'owner' || (currentUserRole === 'editor' && m.role === 'viewer')) ? 'member-role-clickable' : ''}`} onDoubleClick={() => {
                             if (currentUserRole === 'owner' || (currentUserRole === 'editor' && m.role === 'viewer')) {
                               setEditingRoleMemberId(m.id);
                               setEditingRoleValue(m.role);
@@ -618,7 +618,7 @@ export const BoardEditor = () => {
                           }}>{m.role === 'owner' ? 'Propietario' : m.role === 'editor' ? 'Editor' : 'Visitante'}</div>
                         )}
 
-                        <div style={{ display: 'flex', gap: 8, marginLeft: 6 }}>
+                        <div className="members-actions">
                           {!((m.role === 'owner')) && currentUserRole && (currentUserRole === 'owner' || (currentUserRole === 'editor' && m.role === 'viewer')) ? (
                             <button className="icon-button" title="Cambiar rol" onClick={() => { setEditingRoleMemberId(m.id); setEditingRoleValue(m.role); }}>
                               <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 21l3-1 11-11 2 2L8 22l-5 0z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>

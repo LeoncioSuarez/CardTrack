@@ -47,9 +47,9 @@ export const TaskModal = ({ visible, columns, taskForm, setTaskForm, onSubmit, o
       <div className="modal-content">
         <div className="modal-title">Añadir tarea</div>
         {modalAlert && (
-          <div className="modal-alert" role="alert" style={{ marginTop: 8, marginBottom: 6 }}>{modalAlert}</div>
+          <div className="modal-alert modal-alert--spaced" role="alert">{modalAlert}</div>
         )}
-        <div className="form-row">
+            <div className="form-row">
           <label className="form-label">Columna</label>
           <select
             className="form-input"
@@ -61,7 +61,7 @@ export const TaskModal = ({ visible, columns, taskForm, setTaskForm, onSubmit, o
             ))}
           </select>
         </div>
-        <div className="form-row">
+            <div className="form-row">
           <label className="form-label">Nombre de la tarea</label>
           <input
             className="form-input"
@@ -98,25 +98,24 @@ export const TaskModal = ({ visible, columns, taskForm, setTaskForm, onSubmit, o
         )}
 
         {taskForm.type === 'checklist' && (
-          <div className="form-row">
+            <div className="form-row">
             <label className="form-label">Checklist</label>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div className="flex-row">
               <input
-                className="form-input"
+                className="form-input no-margin"
                 placeholder="Añadir elemento (Enter para añadir)"
                 value={newChecklistItem}
                 maxLength={50}
                 onChange={(e) => setNewChecklistItem(e.target.value)}
                 onKeyDown={onKeyDownChecklist}
-                style={{ marginBottom: 0 }}
               />
               <button type="button" className="secondary-button" onClick={addChecklistItem} disabled={(taskForm.checklist || []).length >= 6}>Añadir</button>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
-              <small style={{ color: 'var(--color-secondary-text)' }}>{(taskForm.checklist || []).length}/6 elementos</small>
-              <small style={{ color: 'var(--color-secondary-text)' }}>{Math.max(0, 50 - (newChecklistItem || '').length)} caracteres restantes</small>
+            <div className="space-between-row mt-6">
+              <small className="muted text-small">{(taskForm.checklist || []).length}/6 elementos</small>
+              <small className="muted text-small">{Math.max(0, 50 - (newChecklistItem || '').length)} caracteres restantes</small>
             </div>
-            <div className="checklist-container" style={{ marginTop: 8 }}>
+            <div className="checklist-container">
               {(taskForm.checklist || []).map((it, idx) => (
                 <span key={idx} className="checklist-tag">{it} <button type="button" className="column-remove-btn" onClick={() => removeChecklistItem(idx)}>x</button></span>
               ))}
@@ -124,8 +123,8 @@ export const TaskModal = ({ visible, columns, taskForm, setTaskForm, onSubmit, o
           </div>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ color: 'var(--color-secondary-text)', fontSize: '0.9em' }}>
+        <div className="space-between-row">
+          <div className="muted text-small">
             {taskForm.type === 'checklist' ? '' : `${Math.max(0, 100 - (taskForm.description || '').length)} caracteres restantes`}
           </div>
         </div>

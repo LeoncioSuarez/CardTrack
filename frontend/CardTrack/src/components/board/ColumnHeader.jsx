@@ -22,26 +22,28 @@ export const ColumnHeader = ({
     <div
       className="column-header"
       ref={headerRef}
-      style={{ height: maxHeaderHeight ? `${maxHeaderHeight}px` : 'auto', backgroundColor: column.color || 'var(--color-accent-primary)' }}
+      // set CSS variables so styling resides in index.css; values can be dynamic
+      style={{
+        '--column-height': maxHeaderHeight ? `${maxHeaderHeight}px` : 'auto',
+        '--column-bg': column.color || 'var(--color-accent-primary)'
+      }}
       draggable={currentUserRole !== 'viewer'}
       onDragStart={(e) => (currentUserRole !== 'viewer' && onDragStart) ? onDragStart(e, column.id) : undefined}
     >
       {isEditing ? (
         <>
           <input
-            className="form-input"
+            className="form-input mr-8"
             value={editingColumnTitle}
             onChange={(e) => setEditingColumnTitle(e.target.value)}
             placeholder="Nombre de columna"
-            style={{ marginRight: 8 }}
           />
           <input
             type="color"
             value={editingColumnColor}
             onChange={(e) => setEditingColumnColor(e.target.value)}
             title="Color del encabezado"
-            className="color-input"
-            style={{ width: 36, height: 36, padding: 0, marginRight: 8, cursor: 'pointer' }}
+            className="color-input color-input--large mr-8"
           />
           <div className="column-actions">
             {currentUserRole !== 'viewer' && (
@@ -58,7 +60,7 @@ export const ColumnHeader = ({
         </>
       ) : (
         <>
-          <h3 title={column.title} style={{ wordBreak: 'break-word' }}>{column.title}</h3>
+          <h3 title={column.title} className="col-title">{column.title}</h3>
             <div className="column-actions">
             {currentUserRole !== 'viewer' && (
               <>
