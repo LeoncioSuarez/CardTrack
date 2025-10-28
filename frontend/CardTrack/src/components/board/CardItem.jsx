@@ -57,20 +57,20 @@ export const CardItem = ({ card, column, onEdit, onDelete, onDragStart, onDragOv
       title={card.description || ''}
       onDoubleClick={onDoubleClick}
     >
-      <div style={{ flex: 1 }}>
+      <div className="flex-1">
         <div className="task-title">{card.title}</div>
         <div className="task-details">
           {localChecklist ? (
-            <ul className="card-checklist" style={{ marginTop: 8, marginBottom: 8 }}>
+            <ul className="card-checklist">
               {localChecklist.map((it, idx) => (
-                <li key={idx} className="card-checklist-item" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <li key={idx} className="card-checklist-item">
                   <input type="checkbox" checked={!!it.checked} onChange={() => toggleItem(idx)} disabled={isViewer} />
-                  <span style={{ color: 'var(--color-secondary-text)' }}>{it.text}</span>
+                  <span>{it.text}</span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p style={{ marginTop: 8, marginBottom: 8, color: 'var(--color-secondary-text)' }}>{card.description}</p>
+            <p className="card-description">{card.description}</p>
           )}
         </div>
       </div>

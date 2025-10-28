@@ -73,7 +73,7 @@ const BoardsPreview = () => {
       {error && <p className="error-message">Error: {error}</p>}
       {!loading && !error && (
         <div>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12 }}>
+          <div className="boards-controls">
             <input
               type="search"
               placeholder="Buscar tableros..."
@@ -81,9 +81,8 @@ const BoardsPreview = () => {
               onChange={(e) => setQuery(e.target.value)}
               className="boards-search"
               aria-label="Buscar tableros"
-              style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid var(--color-border)', flex: '0 0 320px' }}
             />
-            <div style={{ color: 'var(--color-secondary-text)' }}>{boards.length} tableros</div>
+            <div className="muted">{boards.length} tableros</div>
           </div>
 
           <div className="boards-list">
@@ -98,7 +97,7 @@ const BoardsPreview = () => {
                   <div key={board.id} className="board-card main-card">
                     <div className="board-card-row">
                       <div className="board-card__content">
-                        <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{board.title}</div>
+                        <div className="board-title">{board.title}</div>
                       </div>
                       <div className="board-card__actions">
                         <button className="secondary-button" onClick={() => handleOpenBoard(board.id)}>Editar</button>

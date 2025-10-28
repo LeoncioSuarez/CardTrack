@@ -3,9 +3,9 @@ import Sidebar from './Sidebar.jsx';
 
 export const Dashboard = ({ viewComponent }) => {
     return (
-        <div className="dashboard-layout" style={{ display: 'flex', minHeight: '100vh' }}>
+        <div className="dashboard-layout">
             <Sidebar />
-            <main className="dashboard-content" style={{ flex: 1, padding: '20px' }}>
+            <main className="dashboard-content">
                 {viewComponent || (
                     <div className="dashboard-content-message">
                         Selecciona una opción del menú.
