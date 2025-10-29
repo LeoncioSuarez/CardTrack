@@ -16,6 +16,7 @@ from .serializers import BoardMembershipSerializer
 from .models import Release
 from .serializers import ReleaseSerializer
 import logging
+from django.db import IntegrityError
 
 logger = logging.getLogger(__name__)
 
@@ -111,23 +112,6 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response({"error": "Contraseña incorrecta"}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class BoardViewSet(viewsets.ModelViewSet):
-    serializer_class = BoardSerializer
-
-    def get_queryset(self):
-        # Optimización para evitar Queries N+1
-        # Incluir boards donde el usuario es owner o miembro
-        return (
-            Board.objects
-            .filter(models.Q(user=self.request.user) | models.Q(memberships__user=self.request.user))
-            .distinct()
-            .prefetch_related('columns__cards')
-        )
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
-
 class BoardMembershipViewSet(viewsets.ModelViewSet):
     serializer_class = BoardMembershipSerializer
 
@@ -145,10 +129,17 @@ class BoardMembershipViewSet(viewsets.ModelViewSet):
             if not (is_owner or is_member):
                 return BoardMembership.objects.none()
             return qs
-        # Unsafe methods (POST/PUT/PATCH/DELETE): sólo owner
-        if not is_owner:
-            return BoardMembership.objects.none()
-        return qs
+        # Unsafe methods: owner can do everything. Editors have a restricted PATCH capability
+        if is_owner:
+            return qs
+
+        # allow editors to attempt PATCH (we will validate transitions in perform_update)
+        is_editor = qs.filter(user=self.request.user, role=BoardMembership.ROLE_EDITOR).exists()
+        if is_editor and self.request.method in ('PATCH',):
+            return qs
+
+        # otherwise disallow unsafe methods (POST/PUT/PATCH/DELETE)
+        return BoardMembership.objects.none()
 
     def perform_create(self, serializer):
         board_id = self.kwargs.get('board_pk')
@@ -157,13 +148,141 @@ class BoardMembershipViewSet(viewsets.ModelViewSet):
             board = Board.objects.get(id=board_id, user=self.request.user)
         except Board.DoesNotExist:
             raise NotFound('Board no encontrado o sin permiso para modificar miembros.')
+        # Do not allow creating owner via API
+        role_val = serializer.validated_data.get('role')
+        if role_val == BoardMembership.ROLE_OWNER:
+            raise NotFound('No está permitido asignar role=owner via API.')
+
+        # Support inviting by email: if client provided 'email' in raw data, find or create user
+        raw_email = None
+        try:
+            raw_email = self.request.data.get('email')
+        except Exception:
+            raw_email = None
+
+        if raw_email:
+            user_obj, created = User.objects.get_or_create(email=raw_email, defaults={'name': raw_email.split('@')[0]})
+            serializer.save(board=board, user=user_obj)
+            return
+
+        # otherwise expect user PK provided in validated_data
         serializer.save(board=board)
 
+    def perform_update(self, serializer):
+        """Enforce role-change rules:
+
+        - Owner: puede cambiar roles entre viewer/editor libremente (pero no se fuerza transferencia de ownership aquí).
+        - Editor: solo puede promover un Viewer a Editor (no puede demover ni tocar Owners ni otros Editors).
+        """
+        board_id = self.kwargs.get('board_pk')
+        # get the instance being updated (if available)
+        instance = getattr(serializer, 'instance', None)
+
+        # If request.user is owner of the board, allow (but do not allow setting role=owner)
+        is_owner = Board.objects.filter(id=board_id, user=self.request.user).exists()
+        if is_owner:
+            if serializer.validated_data.get('role') == BoardMembership.ROLE_OWNER:
+                raise NotFound('No se permite asignar owner mediante la API.')
+            return serializer.save()
+
+        # If request.user is editor, enforce strict promotion rule
+        # Only allow changing role from 'viewer' -> 'editor'
+        is_editor = BoardMembership.objects.filter(board_id=board_id, user=self.request.user, role=BoardMembership.ROLE_EDITOR).exists()
+        if is_editor and instance is not None:
+            # cannot modify owner membership
+            if instance.role == BoardMembership.ROLE_OWNER:
+                raise NotFound('No tienes permiso para modificar la membresía del owner.')
+
+            new_role = serializer.validated_data.get('role')
+            if new_role == BoardMembership.ROLE_EDITOR and instance.role == BoardMembership.ROLE_VIEWER:
+                return serializer.save()
+            # anything else is forbidden
+            raise NotFound('No tienes permiso para realizar esa modificación.')
+
+        # fallback: deny
+        raise NotFound('No tienes permiso para modificar miembros de este board.')
+
     def perform_destroy(self, instance):
-        # Solo el owner puede remover miembros
+        # Only the board owner can remove members
         if instance.board.user_id != self.request.user.id:
             raise NotFound('No tienes permiso para remover miembros de este board.')
         return super().perform_destroy(instance)
+
+
+class BoardViewSet(viewsets.ModelViewSet):
+    serializer_class = BoardSerializer
+
+    def get_queryset(self):
+        # Optimización para evitar Queries N+1
+        return (
+            Board.objects
+            .filter(models.Q(user=self.request.user) | models.Q(memberships__user=self.request.user))
+            .distinct()
+            .prefetch_related('columns__cards')
+        )
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def perform_destroy(self, instance):
+        # Only owner can delete board
+        if instance.user_id != self.request.user.id:
+            raise NotFound('No tienes permiso para eliminar este tablero.')
+        return super().perform_destroy(instance)
+
+    @action(detail=True, methods=['post'], url_path='leave')
+    def leave(self, request, pk=None):
+        board_id = pk
+        try:
+            membership = BoardMembership.objects.get(board_id=board_id, user=request.user)
+        except BoardMembership.DoesNotExist:
+            raise NotFound('No eres miembro de este board.')
+
+        # Prevent owner from leaving via this endpoint; owner must transfer ownership or delete board
+        if membership.role == BoardMembership.ROLE_OWNER:
+            return Response({'detail': 'Owner no puede abandonar el tablero.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        membership.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=False, methods=["post"], url_path="invite")
+    def invite(self, request, board_pk=None):
+        """Invite a a user by email to the board. Only board owner can invite.
+
+        Accepts JSON: { "email": "user@example.com", "role": "viewer" }
+        If the user does not exist, it will be created with a default name.
+        Returns the created BoardMembership serialized.
+        """
+        board_id = board_pk
+        if not board_id:
+            raise NotFound('Board no especificado.')
+
+        # Ensure request.user is the board owner
+        try:
+            board = Board.objects.get(id=board_id, user=self.request.user)
+        except Board.DoesNotExist:
+            raise NotFound('Board no encontrado o sin permiso para invitar.')
+
+        email = request.data.get('email')
+        role = request.data.get('role', BoardMembership.ROLE_VIEWER)
+        if not email:
+            return Response({'email': ['Este campo es requerido.']}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Normalize role and disallow owner via API
+        if role not in {BoardMembership.ROLE_EDITOR, BoardMembership.ROLE_VIEWER}:
+            return Response({'role': ['Valor inválido o no permitido']}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Find or create user by email
+        user, created = User.objects.get_or_create(email=email, defaults={'name': email.split('@')[0]})
+
+        # Create membership (handle uniqueness)
+        try:
+            membership = BoardMembership.objects.create(board=board, user=user, role=role)
+        except IntegrityError:
+            return Response({'detail': 'El usuario ya es miembro de este board.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = BoardMembershipSerializer(membership, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 class ColumnViewSet(viewsets.ModelViewSet):
     serializer_class = ColumnSerializer

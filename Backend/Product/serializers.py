@@ -1,8 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
-from .models import User, Board, Column, Card, CarouselImage
-from .models import BoardMembership
-from .models import Release
+from .models import User, Board, Column, Card, CarouselImage, BoardMembership, Release
+
 
 
 class CardSerializer(serializers.ModelSerializer):
@@ -47,10 +46,48 @@ class BoardSerializer(serializers.ModelSerializer):
 
 
 class BoardMembershipSerializer(serializers.ModelSerializer):
+    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=False)
+    email = serializers.EmailField(write_only=True, required=False)
+    user_email = serializers.SerializerMethodField(read_only=True)
+    user_name = serializers.SerializerMethodField(read_only=True)
+    user_profilepicture = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = BoardMembership
-        fields = ['id', 'board', 'user', 'role', 'invited_at']
+        # include 'email' (write-only) so serializer can accept invites by email
+        fields = ['id', 'board', 'user', 'email', 'user_name', 'user_email', 'user_profilepicture', 'role', 'invited_at']
         read_only_fields = ['id', 'board', 'invited_at']
+
+    def get_user_email(self, obj):
+        return obj.user.email if obj and obj.user else None
+
+    def get_user_name(self, obj):
+        return obj.user.name if obj and obj.user else None
+
+    def get_user_profilepicture(self, obj):
+        # return absolute or relative URL for the user's profile picture if available
+        if not obj or not obj.user:
+            return None
+        profile = getattr(obj.user, 'profilepicture', None)
+        if not profile:
+            return None
+        request = self.context.get('request')
+        try:
+            if request and hasattr(profile, 'url'):
+                return request.build_absolute_uri(profile.url)
+            if hasattr(profile, 'url'):
+                return profile.url
+            return str(profile)
+        except Exception:
+            return None
+
+    def create(self, validated_data):
+        # support creating membership by providing 'email' instead of user PK
+        email = validated_data.pop('email', None)
+        if email and not validated_data.get('user'):
+            user_obj, _ = User.objects.get_or_create(email=email, defaults={'name': email.split('@')[0]})
+            validated_data['user'] = user_obj
+        return super().create(validated_data)
 
 
 class UserSerializer(serializers.ModelSerializer):

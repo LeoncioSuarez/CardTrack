@@ -6,6 +6,7 @@ import { fetchBoards } from '../utils/api';
 const BoardsPreview = () => {
   const { token, user } = useContext(AuthContext);
   const [boards, setBoards] = useState([]);
+  const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -42,9 +43,23 @@ const BoardsPreview = () => {
   };
 
   const handleDeleteBoard = async (board) => {
-    if (!window.confirm(`¿Eliminar el tablero "${board.title}"?`)) return;
+    // Only allow delete if current user is owner
+    const isOwner = board.user === user?.id || board.user_id === user?.id || board.owner === user?.id;
+    if (isOwner) {
+      if (!window.confirm(`¿Eliminar el tablero "${board.title}"?`)) return;
+      try {
+        await (await import('../utils/boardApi')).deleteBoard(board.id, token);
+        setBoards(prev => prev.filter(b => b.id !== board.id));
+      } catch (e) {
+        alert(e.message);
+      }
+      return;
+    }
+
+    // If not owner, let user "leave" the board
+    if (!window.confirm(`¿Abandonar el tablero "${board.title}"?`)) return;
     try {
-      await (await import('../utils/boardApi')).deleteBoard(board.id, token);
+      await (await import('../utils/boardApi')).leaveBoard(board.id, token);
       setBoards(prev => prev.filter(b => b.id !== board.id));
     } catch (e) {
       alert(e.message);
@@ -53,33 +68,48 @@ const BoardsPreview = () => {
 
   return (
     <div className="boards-preview">
-      <h2 className="boards-preview-title">Tus tableros</h2>
 
       {loading && <p>Cargando tableros...</p>}
       {error && <p className="error-message">Error: {error}</p>}
-
       {!loading && !error && (
-        <div className="boards-list">
-          {boards.length === 0 ? (
-            <p>No tienes tableros aún.</p>
-          ) : (
-            boards.map((board) => (
-              <div key={board.id} className="board-card main-card">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                  <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontWeight: 600 }}>{board.title}</div>
-                    <div style={{ color: 'var(--color-secondary-text)', fontSize: '0.9em' }}>
-                      Tareas totales: {board.task_count || (board.columns?.reduce((acc, c) => acc + (c.cards?.length || 0), 0) || 0)}
+        <div>
+          <div className="boards-controls">
+            <input
+              type="search"
+              placeholder="Buscar tableros..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="boards-search"
+              aria-label="Buscar tableros"
+            />
+            <div className="muted">{boards.length} tableros</div>
+          </div>
+
+          <div className="boards-list">
+            {boards.length === 0 ? (
+              <p>No tienes tableros aún.</p>
+            ) : (
+              // filter by query and sort alphabetically by title
+              boards
+                .filter(b => !query || (b.title || '').toLowerCase().includes(query.toLowerCase()))
+                .sort((a, b) => (a.title || '').localeCompare(b.title || ''))
+                .map((board) => (
+                  <div key={board.id} className="board-card main-card">
+                    <div className="board-card-row">
+                      <div className="board-card__content">
+                        <div className="board-title">{board.title}</div>
+                      </div>
+                      <div className="board-card__actions">
+                        <button className="secondary-button" onClick={() => handleOpenBoard(board.id)}>Editar</button>
+                        <button className="danger-button" onClick={() => handleDeleteBoard(board)}>
+                          { (board.user === user?.id || board.user_id === user?.id || board.owner === user?.id) ? 'Eliminar' : 'Abandonar' }
+                        </button>
+                      </div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button className="secondary-button" onClick={() => handleOpenBoard(board.id)}>Editar</button>
-                    <button className="danger-button" onClick={() => handleDeleteBoard(board)}>Eliminar</button>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
+                ))
+            )}
+          </div>
         </div>
       )}
     </div>

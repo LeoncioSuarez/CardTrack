@@ -24,6 +24,7 @@ export const Column = ({
   onCardDropOnItem,
   handleEditTask,
   handleDeleteTask,
+  currentUserRole,
 }) => {
   return (
     <div
@@ -46,6 +47,7 @@ export const Column = ({
         onDragStart={onColumnDragStart}
         onDeleteColumn={onDeleteColumn}
         maxHeaderHeight={maxHeaderHeight}
+        currentUserRole={currentUserRole}
       />
 
       <ul
@@ -64,6 +66,7 @@ export const Column = ({
             onDragOver={onCardDragOverList}
             onDrop={onCardDropOnItem}
             onDoubleClick={(e) => { const li = e.currentTarget; li.classList.toggle('expanded'); }}
+            currentUserRole={currentUserRole}
           />
         ))}
       </ul>

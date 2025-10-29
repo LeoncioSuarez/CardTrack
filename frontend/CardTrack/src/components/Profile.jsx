@@ -38,7 +38,7 @@ export const Profile = () => {
     const [saving, setSaving] = useState(false);
 
     if (!user) {
-        return <div className="profile-container" style={{ color: 'var(--color-primary-text)' }}>Cargando perfil...</div>;
+        return <div className="profile-container profile-loading">Cargando perfil...</div>;
     }
 
     const enterEdit = () => {
@@ -94,8 +94,11 @@ export const Profile = () => {
                     // Note: we intentionally append the file only once (key 'profilepicture') to avoid duplicate files on the server.
                     try {
                         await updateUserApi(user.id, token, fd);
-                        // success
-                        await refreshUser();
+                        // success: refresh user and update preview with the fresh profilepicture
+                        const refreshed = await refreshUser();
+                        if (refreshed) {
+                            setPreviewSrc(normalizeImage(refreshed.profilepicture));
+                        }
                         setEditing(false);
                         setFileToUpload(null);
                         setErrorMsg(null);
@@ -115,19 +118,19 @@ export const Profile = () => {
     return (
         <div className="profile-container">
             <h1 className="profile-title">Mi Perfil</h1>
-            <div className="main-card profile-info-box" style={{ display: 'flex', gap: '32px', alignItems: 'flex-start', padding: 24, maxWidth: 1000 }}>
-                <div style={{ width: 260, textAlign: 'center', flexShrink: 0 }}>
-                    <input ref={inputFileRef} name="profilepicture" type="file" accept="image/*" style={{ display: 'none' }} onChange={onFileChange} />
-                    <ProfileView user={user} previewSrc={previewSrc} onPhotoClick={onPhotoClick} enterEdit={enterEdit} side="left" />
+            <div className="main-card profile-info-box profile-info-box--flex">
+                    <div className="profile-left">
+                    <input ref={inputFileRef} name="profilepicture" type="file" accept="image/*" className="hidden-input" onChange={onFileChange} />
+                    <ProfileView user={user} previewSrc={previewSrc} onPhotoClick={onPhotoClick} enterEdit={enterEdit} side="left" defaultProfile={defaultProfile} />
                 </div>
 
-                <div style={{ flex: 1 }}>
+                <div className="profile-right">
                     {!editing ? (
-                        <ProfileView user={user} previewSrc={previewSrc} onPhotoClick={onPhotoClick} enterEdit={enterEdit} side="right" />
+                        <ProfileView user={user} previewSrc={previewSrc} onPhotoClick={onPhotoClick} enterEdit={enterEdit} side="right" defaultProfile={defaultProfile} />
                     ) : (
                         <div>
                             {errorMsg && (
-                                <div style={{ marginBottom: 12, color: 'red' }}>{errorMsg}</div>
+                                <div className="error-message">{errorMsg}</div>
                             )}
                             <ProfileEdit
                                 name={name}

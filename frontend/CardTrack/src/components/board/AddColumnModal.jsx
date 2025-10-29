@@ -22,7 +22,7 @@ export const AddColumnModal = ({ visible, newColumn, setNewColumn, onClose, onSu
             value={newColumn.color}
             onChange={(e) => setNewColumn(prev => ({ ...prev, color: e.target.value }))}
             title="Color del encabezado"
-            style={{ width: 50, height: 36, padding: 0, border: 'none', background: 'transparent', cursor: 'pointer' }}
+            className="color-input color-input--large"
           />
         </div>
         <div className="modal-actions">
