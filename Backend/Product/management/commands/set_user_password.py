@@ -32,7 +32,6 @@ class Command(BaseCommand):
             raise CommandError(f'User with {identifier} does not exist')
 
         if not password:
-            # prompt without echo
             password = getpass('Enter new password: ')
             confirm = getpass('Confirm new password: ')
             if password != confirm:
