@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework import status, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.exceptions import NotFound
-from django.contrib.auth.hashers import check_password
+from django.contrib.auth.hashers import check_password, make_password
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from .models import User, Board, Column, Card, CarouselImage
 from .models import BoardMembership
@@ -15,6 +15,7 @@ from .serializers import UserSerializer, BoardSerializer, ColumnSerializer, Card
 from .serializers import BoardMembershipSerializer
 from .models import Release
 from .serializers import ReleaseSerializer
+
 import logging
 from django.db import IntegrityError
 
@@ -110,6 +111,37 @@ class UserViewSet(viewsets.ModelViewSet):
             })
         else:
             return Response({"error": "Contraseña incorrecta"}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=["post"], url_path="change-password", permission_classes=[IsAuthenticated])
+    def change_password(self, request, pk=None):
+        """Permite al usuario autenticado cambiar su propia contraseña.
+
+        Body JSON esperado:
+        - current_password: str
+        - new_password: str
+        """
+        user = self.get_object()
+        # Sólo el propio usuario puede cambiar su contraseña; ocultamos existencia si no es él
+        if request.user.id != user.id:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        current_password = request.data.get("current_password")
+        new_password = request.data.get("new_password")
+
+        if not current_password or not new_password:
+            return Response({"error": "current_password y new_password son requeridos"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not check_password(current_password, user.password_hash):
+            return Response({"error": "Contraseña actual incorrecta"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validación mínima; podemos integrar validadores de Django si migramos a auth nativo
+        if len(new_password) < 8:
+            return Response({"error": "La nueva contraseña debe tener al menos 8 caracteres"}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.password_hash = make_password(new_password)
+        user.save(update_fields=["password_hash"])
+
+        return Response({"message": "Contraseña actualizada"}, status=status.HTTP_200_OK)
 
 
 class BoardMembershipViewSet(viewsets.ModelViewSet):

@@ -155,4 +155,3 @@ class CarouselImage(models.Model):
 
     def __str__(self):
         return self.title or f"CarouselImage #{self.pk}"
-    

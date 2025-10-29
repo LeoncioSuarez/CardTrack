@@ -98,6 +98,8 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'CardTrack.wsgi.application'
 
+# ASGI/Channels config removed while reverting WebSocket chat attempt.
+
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
