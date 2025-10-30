@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework import status, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.exceptions import NotFound
-from django.contrib.auth.hashers import check_password
+from django.contrib.auth.hashers import check_password, make_password
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from .models import User, Board, Column, Card, CarouselImage
 from .models import BoardMembership
@@ -110,6 +110,40 @@ class UserViewSet(viewsets.ModelViewSet):
             })
         else:
             return Response({"error": "Contraseña incorrecta"}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=["post"], url_path="change-password", permission_classes=[IsAuthenticated])
+    def change_password(self, request, pk=None):
+        """Allow an authenticated user to change their own password.
+
+        Expected JSON body:
+          - current_password: str
+          - new_password: str (min 8 chars)
+
+        Returns 200 with message on success, 400 on validation error, 404 if user not found / not allowed.
+        """
+        instance = self.get_object()
+
+        # Only allow the user themself to change password; hide resource existence otherwise
+        if request.user.id != instance.id:
+            raise NotFound('No encontrado')
+
+        current = request.data.get('current_password')
+        new = request.data.get('new_password')
+
+        if not current or not new:
+            return Response({'detail': 'current_password y new_password son requeridos.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if len(new) < 8:
+            return Response({'detail': 'La nueva contraseña debe tener al menos 8 caracteres.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # verify current password
+        if not check_password(current, instance.password_hash):
+            return Response({'detail': 'Contraseña actual incorrecta.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # everything ok -> set new password
+        instance.password_hash = make_password(new)
+        instance.save()
+        return Response({'message': 'Contraseña actualizada'}, status=status.HTTP_200_OK)
 
 
 class BoardMembershipViewSet(viewsets.ModelViewSet):
