@@ -811,31 +811,90 @@ button:disabled, .main-button:disabled {
   flex-shrink: 0; 
 }
 
-.column-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  /* use CSS variables for dynamic values set from JS: --column-bg and --column-height */
-  background-color: var(--column-bg, var(--color-accent-primary));
+.task-counter {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.18);
   color: var(--color-white);
-  padding: 10px 12px;
-  margin: 0 0 10px 0;
-  border-radius: 4px 4px 0 0;
-  text-transform: uppercase;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  min-width: 36px;
+  text-align: center;
   font-weight: 700;
-  letter-spacing: 0.5px;
-  height: var(--column-height, auto);
-}
+  line-height: 1;
+.}
 .column-header h3 {
   flex: 1 1 auto;
   margin: 0;
   overflow: visible;
   text-overflow: clip;
   white-space: normal;
+  /* keep header titles white so they read well on colored headers */
+  color: var(--color-white);
+  font-weight: 700;
 }
 .column-header .column-actions {
   flex: 0 0 auto;
 }
+
+/* Header-scoped icon buttons: use filled background (not just border) so they
+   read on colored header backgrounds. This keeps the UI consistent with the
+   filled look of other controls. */
+.column-header .icon-button {
+  background: rgba(255,255,255,0.12);
+  color: var(--color-white);
+  border: none;
+  box-shadow: none;
+}
+.column-header .icon-button:hover {
+  background: rgba(255,255,255,0.2);
+  color: var(--color-white);
+}
+.column-header .icon-button.icon-button--danger {
+  background: rgba(255,255,255,0.12);
+  color: var(--color-status-danger);
+}
+
+/* Ensure SVG strokes/fills follow the button color and remain legible */
+.column-header .icon-button svg, .column-header .icon-button svg * {
+  stroke: currentColor;
+  fill: none;
+}
+.column-header .icon-button:hover svg, .column-header .icon-button:hover svg * {
+  stroke: currentColor;
+  fill: currentColor; /* on hover fill the icon for clearer feedback */
+}
+
+/* Dark theme: make the board feel cohesive in dark mode */
+.theme-dark .board-columns-container {
+  background: linear-gradient(180deg, rgba(7,16,35,0.9), rgba(7,10,20,0.95));
+  border-color: rgba(255,255,255,0.04);
+}
+.theme-dark .board-column {
+  border-right: 1px solid rgba(255,255,255,0.04);
+}
+.theme-dark .column-header {
+  /* keep header color variable-driven; ensure good contrast */
+  color: var(--color-white);
+}
+.theme-dark .task-item {
+  background: rgba(255,255,255,0.02);
+  color: var(--color-primary-text);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+  border-left-color: rgba(46,204,113,0.9);
+}
+.theme-dark .task-counter {
+  background: rgba(47,128,237,0.95);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.04);
+}
+
+/* Tweak icon-button defaults so icons don't invert badly in dark headers */
+.icon-button { background: rgba(255,255,255,0.03); }
+.icon-button svg, .icon-button svg * { stroke: currentColor; fill: none; }
+.icon-button:hover svg, .icon-button:hover svg * { fill: currentColor; stroke: currentColor; }
 
 .tasks-list {
   list-style: none;
@@ -845,6 +904,7 @@ button:disabled, .main-button:disabled {
   min-height: 50vh;
 }
 .task-item {
+  position: relative;
   padding: 0.75rem;
   margin: 0.5rem 0;
   background-color: var(--color-card-background);
@@ -1356,3 +1416,96 @@ thead th {
     .presentation-title-2 { font-size: 1.2em; margin-bottom: 20px; }
     .gallery-container { display: none; }
 }
+
+/* =========================
+   UI Refresh overrides
+   - non-invasive overrides appended to the end of the file
+   - keep changes at CSS level only; no inline style modifications
+   ========================= */
+
+:root {
+  --app-accent-gradient: linear-gradient(90deg, var(--color-accent-primary), #2a8bd6 60%);
+  --card-radius: 12px;
+  --btn-radius: 8px;
+}
+
+/* Improve global typography scale for headings and readable line-lengths */
+h1 { font-size: 2.6rem; color: var(--color-accent-primary); letter-spacing: -0.6px; }
+h2 { font-size: 1.4rem; color: var(--color-primary-text); }
+body { font-size: 15.5px; }
+
+/* Main app header (if present) */
+.app-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; gap: 12px;
+  background: white; border-bottom: 1px solid var(--color-border);
+  box-shadow: 0 2px 10px rgba(15,23,42,0.03);
+}
+
+/* Main card polish */
+.main-card { border-radius: var(--card-radius); box-shadow: 0 8px 30px rgba(15,23,42,0.06); padding: 18px; }
+
+/* Smooth buttons */
+.main-button, button {
+  border-radius: var(--btn-radius);
+  padding: 10px 14px;
+  transition: transform .12s ease, box-shadow .12s ease, background-color .12s ease;
+}
+.main-button:hover, button:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+.secondary-button { border-radius: var(--btn-radius); }
+.secondary-button:hover { background: rgba(31,111,235,0.08); }
+
+/* Cards and board area tweaks */
+.board-columns-container { background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(250,250,252,0.95)); padding: 1.25rem; }
+.board-column { background: transparent; border-radius: 10px; padding-top: 14px; }
+.board-column .col-title { font-size: 0.98rem; color: var(--color-primary-text); }
+
+/* Task card improvements */
+.task-item { border-radius: 10px; border-left-width: 8px; padding: 12px; }
+.task-title { font-weight: 700; color: var(--color-primary-text); margin-bottom: 6px; }
+.card-description, .card-checklist-item span { color: var(--color-secondary-text); }
+
+/* Task counter badge (improved look) */
+.task-counter {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(31,111,235,0.95);
+  color: #fff;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  min-width: 36px;
+  text-align: center;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 4px 10px rgba(15,23,42,0.12);
+  border: 2px solid rgba(255,255,255,0.06);
+}
+
+/* Icon buttons: softer background and hover */
+.icon-button { background: rgba(0,0,0,0.03); border-radius: 8px; }
+.icon-button:hover { background: var(--color-accent-primary); color: #fff; }
+
+/* Modal tweaks for a cleaner look */
+.modal-content { border-radius: 12px; padding: 20px; max-width: 720px; }
+.modal-title { color: var(--color-accent-primary); }
+
+/* Sidebar polish */
+.sidebar-menu { border-radius: 0 8px 8px 0; }
+.sidebar-title { border-radius: 0 8px 0 0; }
+
+/* Subtle elevation for member avatars */
+.member-avatar-box { box-shadow: 0 4px 10px rgba(15,23,42,0.06); }
+
+/* Responsive: reduce paddings on small viewports */
+@media (max-width: 700px) {
+  .board-columns-container { padding: 0.6rem; }
+  .task-item { padding: 10px; }
+  .task-counter { top: 6px; right: 6px; font-size: 11px; padding: 3px 6px; }
+}
+
+/* Accessibility: focus outlines for keyboard navigation */
+button:focus, .icon-button:focus, .main-button:focus, .secondary-button:focus { outline: 3px solid rgba(31,111,235,0.14); outline-offset: 2px; }
+
+/* End UI refresh */

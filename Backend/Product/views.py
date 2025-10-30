@@ -114,34 +114,37 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="change-password", permission_classes=[IsAuthenticated])
     def change_password(self, request, pk=None):
-        """Permite al usuario autenticado cambiar su propia contraseña.
+        """Allow an authenticated user to change their own password.
 
-        Body JSON esperado:
-        - current_password: str
-        - new_password: str
+        Expected JSON body:
+          - current_password: str
+          - new_password: str (min 8 chars)
+
+        Returns 200 with message on success, 400 on validation error, 404 if user not found / not allowed.
         """
-        user = self.get_object()
-        # Sólo el propio usuario puede cambiar su contraseña; ocultamos existencia si no es él
-        if request.user.id != user.id:
-            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        instance = self.get_object()
 
-        current_password = request.data.get("current_password")
-        new_password = request.data.get("new_password")
+        # Only allow the user themself to change password; hide resource existence otherwise
+        if request.user.id != instance.id:
+            raise NotFound('No encontrado')
 
-        if not current_password or not new_password:
-            return Response({"error": "current_password y new_password son requeridos"}, status=status.HTTP_400_BAD_REQUEST)
+        current = request.data.get('current_password')
+        new = request.data.get('new_password')
 
-        if not check_password(current_password, user.password_hash):
-            return Response({"error": "Contraseña actual incorrecta"}, status=status.HTTP_400_BAD_REQUEST)
+        if not current or not new:
+            return Response({'detail': 'current_password y new_password son requeridos.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Validación mínima; podemos integrar validadores de Django si migramos a auth nativo
-        if len(new_password) < 8:
-            return Response({"error": "La nueva contraseña debe tener al menos 8 caracteres"}, status=status.HTTP_400_BAD_REQUEST)
+        if len(new) < 8:
+            return Response({'detail': 'La nueva contraseña debe tener al menos 8 caracteres.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        user.password_hash = make_password(new_password)
-        user.save(update_fields=["password_hash"])
+        # verify current password
+        if not check_password(current, instance.password_hash):
+            return Response({'detail': 'Contraseña actual incorrecta.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response({"message": "Contraseña actualizada"}, status=status.HTTP_200_OK)
+        # everything ok -> set new password
+        instance.password_hash = make_password(new)
+        instance.save()
+        return Response({'message': 'Contraseña actualizada'}, status=status.HTTP_200_OK)
 
 
 class BoardMembershipViewSet(viewsets.ModelViewSet):

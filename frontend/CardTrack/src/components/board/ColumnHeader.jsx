@@ -15,6 +15,7 @@ export const ColumnHeader = ({
   onDragStart,
   onDeleteColumn,
   currentUserRole,
+  
 }) => {
   const isEditing = editingColumnId === column.id;
 
@@ -30,6 +31,7 @@ export const ColumnHeader = ({
       draggable={currentUserRole !== 'viewer'}
       onDragStart={(e) => (currentUserRole !== 'viewer' && onDragStart) ? onDragStart(e, column.id) : undefined}
     >
+      {/* column header controls (counter moved to task cards) */}
       {isEditing ? (
         <>
           <input

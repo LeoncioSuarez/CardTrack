@@ -1,0 +1,132 @@
+:root {
+  /* Colores base */
+  --color-white: #FFFFFF;
+  --color-black: #000000;
+  
+  /* Colores de fondo */
+  --color-primary-background: #F0F2F5; /* Un fondo más suave */
+  --color-surface-background: #FFFFFF; /* Superficies claras */
+  --color-card-background: #FFFFFF;
+  --color-input-background: #FFFFFF;
+
+  /* Colores de texto */
+  --color-primary-text: #2C3E50; /* Texto principal más oscuro para mejor contraste */
+  --color-secondary-text: #7F8C8D; /* Texto secundario */
+  --color-tertiary-text: #BDC3C7; /* Texto muy sutil */
+
+  /* Colores de acento */
+  --color-accent-primary: #3498DB; /* Azul más vibrante */
+  --color-accent-secondary: #2ECC71; /* Verde para éxito/acciones positivas */
+  --color-accent-hover: #2186c4; /* Tono más oscuro para hover */
+
+  /* Colores de estado */
+  --color-status-danger: #E74C3C; /* Rojo para peligro/error */
+  --color-status-warning: #F39C12; /* Naranja para advertencia */
+  --color-status-info: #3498DB; /* Azul para información */
+
+  /* Sombras */
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.08); /* Sombra más suave */
+  --shadow-hover: 0 6px 16px rgba(0, 0, 0, 0.12);
+
+  /* Bordes */
+  --color-border: #E0E0E0; /* Borde más claro */
+  --color-divider: #ECF0F1; /* Divisores sutiles */
+
+  /* Tipografía */
+  font-family: 'Inter', 'Roboto', system-ui, -apple-system, 'Segoe UI', Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.6; 
+  font-weight: 400;
+  font-size: 16px;
+
+  /* Configuración global */
+  color-scheme: light; 
+  color: var(--color-primary-text);
+  background-color: var(--color-primary-background);
+
+}
+
+.theme-dark {
+  --color-primary-background: #181818;
+  --color-surface-background: #232323;
+  --color-primary-text: #f5f5f5;
+  --color-secondary-text: #bdbdbd;
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.6);
+
+  --color-border: #3a3a3a;
+  --color-card-background: #242424;
+  --color-input-background: #1f1f1f;
+}
+
+/* Improve contrast for profile/info boxes in dark theme and ensure text is readable */
+.theme-dark .profile-info-box, .theme-dark .main-card {
+  background-color: var(--color-card-background);
+  color: var(--color-primary-text);
+}
+
+.profile-info-box div[style], .profile-info-box .readonly-field, .profile-info-box > div {
+  /* Fallback styling for inline boxes used in Profile.jsx (small cards showing dates) */
+  color: var(--color-primary-text);
+}
+
+.profile-info-box div[style] div {
+  /* inner text (labels) */
+  color: var(--color-secondary-text);
+}
+
+/* Ensure inputs and textarea in dark theme show readable text */
+.theme-dark input, .theme-dark textarea, .theme-dark .form-input, .theme-dark .auth-input {
+  background-color: var(--color-input-background);
+  color: var(--color-primary-text);
+  border-color: var(--color-border);
+}
+
+/* Ensure small label/metadata text uses secondary color for both themes */
+.profile-info-box .meta-label, .profile-info-box small {
+  color: var(--color-secondary-text);
+}
+
+/*
+  Centralized stylesheet for CardTrack
+  - Provides CSS variables for theming
+  - Utility classes and layout helpers
+  - Component styles referenced by React components
+
+  NOTE: Keep classnames stable because components reference them directly.
+*/
+
+:root {
+  --color-primary-text: #0f172a;
+  --color-secondary-text: #6b7280;
+  --color-tertiary-text: #9ca3af;
+  --color-accent-primary: #1f6feb; /* blue */
+  --color-card-background: #ffffff;
+  --color-surface-background: #f6f8fb;
+  --color-border: #e6e9ef;
+  --color-input-background: #f2f4f8;
+  --color-status-danger: #dc2626;
+  --color-success: #059669;
+  --shadow-card: 0 2px 8px rgba(15,23,42,0.05);
+  --max-page-width: 1200px;
+}
+
+/* Dark theme tweaks */
+.theme-dark {
+  --color-primary-text: #e6eef9;
+  --color-secondary-text: #b7c6db;
+  --color-tertiary-text: #94a3b8;
+  --color-card-background: #0b1220;
+  --color-surface-background: #071023;
+  --color-border: rgba(255,255,255,0.06);
+  --color-input-background: rgba(255,255,255,0.02);
+}
+
+/* Reset / base */
+* { box-sizing: border-box; }
+html,body,#root { height: 100%; }
+body {
+  margin: 0; font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  background: var(--color-surface-background); color: var(--color-primary-text);
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+}
+
+/* ... (backup just contains original file content) ... */

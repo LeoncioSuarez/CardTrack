@@ -481,7 +481,9 @@ export const BoardEditor = () => {
             }}>×</button>
           </div>
         )}
-        {columns.map((column) => (
+        {(() => {
+          const totalCards = (columns || []).reduce((s, c) => s + ((c.cards && c.cards.length) || 0), 0);
+          return columns.map((column) => (
           <Column
             key={column.id}
             column={column}
@@ -506,8 +508,10 @@ export const BoardEditor = () => {
             handleEditTask={handleEditTask}
             handleDeleteTask={handleDeleteTask}
             currentUserRole={currentUserRole}
+            totalCards={totalCards}
           />
-        ))}
+        ))
+        })()}
       </div>
 
       
