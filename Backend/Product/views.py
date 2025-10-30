@@ -15,6 +15,7 @@ from .serializers import UserSerializer, BoardSerializer, ColumnSerializer, Card
 from .serializers import BoardMembershipSerializer
 from .models import Release
 from .serializers import ReleaseSerializer
+
 import logging
 from django.db import IntegrityError
 
