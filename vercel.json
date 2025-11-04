@@ -1,3 +1,14 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/" }]
+"builds": [
+{
+"src": "frontend/CardTrack/package.json",
+"use": "@vercel/static-build",
+"config": { "distDir": "frontend/CardTrack/dist" }
+}
+],
+"routes": [
+{ "handle": "filesystem" },
+{ "src": "/(.)", "dest": "frontend/CardTrack/dist/$1" },
+{ "src": "/.", "dest": "frontend/CardTrack/dist/index.html" }
+]
 }
