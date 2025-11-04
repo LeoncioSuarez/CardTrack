@@ -11,8 +11,14 @@ class Migration(migrations.Migration):
 
     # Use Python-based conditional DDL for MySQL versions without ADD COLUMN IF NOT EXISTS
     def _add_color_if_missing(apps, schema_editor):
-        table = schema_editor.connection.ops.quote_name('product_column')
+        raw_table = 'product_column'
+        table = schema_editor.connection.ops.quote_name(raw_table)
         with schema_editor.connection.cursor() as cursor:
+            # Ensure table exists (fresh DBs should have it after 0001, but guard anyway)
+            cursor.execute("SHOW TABLES LIKE %s", (raw_table,))
+            table_exists = cursor.fetchone() is not None
+            if not table_exists:
+                return
             cursor.execute(f"SHOW COLUMNS FROM {table} LIKE %s", ('color',))
             exists = cursor.fetchone() is not None
             if not exists:
@@ -21,8 +27,13 @@ class Migration(migrations.Migration):
                 )
 
     def _drop_color_if_present(apps, schema_editor):
-        table = schema_editor.connection.ops.quote_name('product_column')
+        raw_table = 'product_column'
+        table = schema_editor.connection.ops.quote_name(raw_table)
         with schema_editor.connection.cursor() as cursor:
+            cursor.execute("SHOW TABLES LIKE %s", (raw_table,))
+            table_exists = cursor.fetchone() is not None
+            if not table_exists:
+                return
             cursor.execute(f"SHOW COLUMNS FROM {table} LIKE %s", ('color',))
             exists = cursor.fetchone() is not None
             if exists:
