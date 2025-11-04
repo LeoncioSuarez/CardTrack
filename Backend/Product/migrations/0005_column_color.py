@@ -9,17 +9,27 @@ class Migration(migrations.Migration):
         ('Product', '0004_remove_user_groups_remove_user_is_active_and_more'),
     ]
 
+    # Make this branch idempotent as well; only DB op, no state changes
+    def _add_color_if_missing_v2(apps, schema_editor):
+        table = schema_editor.connection.ops.quote_name('product_column')
+        with schema_editor.connection.cursor() as cursor:
+            cursor.execute(f"SHOW COLUMNS FROM {table} LIKE %s", ('color',))
+            exists = cursor.fetchone() is not None
+            if not exists:
+                cursor.execute(
+                    f"ALTER TABLE {table} ADD COLUMN `color` varchar(7) NOT NULL DEFAULT '#0B97F4'"
+                )
+
+    def _drop_color_if_present_v2(apps, schema_editor):
+        table = schema_editor.connection.ops.quote_name('product_column')
+        with schema_editor.connection.cursor() as cursor:
+            cursor.execute(f"SHOW COLUMNS FROM {table} LIKE %s", ('color',))
+            exists = cursor.fetchone() is not None
+            if exists:
+                cursor.execute(
+                    f"ALTER TABLE {table} DROP COLUMN `color`"
+                )
+
     operations = [
-        # This branch also attempted to add the same column. Make it idempotent
-        # and avoid state duplication by only performing a conditional DB change.
-        migrations.RunSQL(
-            sql=(
-                "ALTER TABLE `product_column` "
-                "ADD COLUMN IF NOT EXISTS `color` varchar(7) "
-                "NOT NULL DEFAULT '#0B97F4';"
-            ),
-            reverse_sql=(
-                "ALTER TABLE `product_column` DROP COLUMN IF EXISTS `color`;"
-            ),
-        ),
+        migrations.RunPython(_add_color_if_missing_v2, _drop_color_if_present_v2),
     ]
