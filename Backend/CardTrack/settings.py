@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 import os
+import ssl
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -53,6 +54,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'channels',
     'corsheaders',
     'rest_framework',
     'Product',
@@ -98,11 +100,56 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'CardTrack.wsgi.application'
 
-# ASGI/Channels config removed while reverting WebSocket chat attempt.
+# Channels (ASGI)
+ASGI_APPLICATION = 'CardTrack.asgi.application'
+
+# Channel layers: in dev use in-memory; for prod you can set REDIS_URL to enable Redis
+REDIS_URL = os.getenv('REDIS_URL')
+if REDIS_URL:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                'hosts': [REDIS_URL],
+            },
+        },
+    }
+else:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        },
+    }
 
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+
+# Database (MySQL by default via env). Supports SSL for providers like Aiven.
+
+# Optional SSL config
+DB_SSL_MODE = os.getenv('DB_SSL_MODE')  # e.g., REQUIRED, VERIFY_CA, VERIFY_IDENTITY
+DB_SSL_CA = os.getenv('DB_SSL_CA')  # path to CA file
+DB_SSL_CA_PEM = os.getenv('DB_SSL_CA_PEM')  # CA contents (PEM) if you prefer storing in env
+
+# If CA content is provided via env, write it to a temp file so MySQL client can use it
+if not DB_SSL_CA and DB_SSL_CA_PEM:
+    try:
+        ca_path = BASE_DIR / 'aiven-ca.pem'
+        with open(ca_path, 'w', encoding='utf-8') as f:
+            f.write(DB_SSL_CA_PEM.replace('\\n', '\n'))
+        DB_SSL_CA = str(ca_path)
+    except Exception:
+        # If we can't write the file, we'll proceed without CA path
+        pass
+
+_db_options = {}
+if DB_SSL_CA:
+    # Verify server certificate with provided CA
+    _db_options['ssl'] = {'ca': DB_SSL_CA}
+elif (DB_SSL_MODE or '').upper() in ('REQUIRED', 'VERIFY_CA', 'VERIFY_IDENTITY'):
+    # Enable SSL without explicit CA path (may connect but skip strict verification depending on driver)
+    _db_options['ssl'] = {}
 
 DATABASES = {
     'default': {
@@ -112,6 +159,8 @@ DATABASES = {
         'PASSWORD': os.environ.get('DB_PASSWORD'),
         'HOST': os.environ.get('DB_HOST'),
         'PORT': os.environ.get('DB_PORT'),
+        # Add SSL/options only when needed to avoid impacting local dev
+        **({'OPTIONS': _db_options} if _db_options else {}),
     }
 }
 
