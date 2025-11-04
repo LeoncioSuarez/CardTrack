@@ -13,6 +13,7 @@ import os
 import ssl
 from pathlib import Path
 from dotenv import load_dotenv
+from urllib.parse import urlsplit
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -29,6 +30,32 @@ def _get_list_from_env(name: str):
         return None
     # Split by comma and strip whitespace
     return [item.strip() for item in value.split(',') if item.strip()]
+
+
+def _sanitize_origins(origins):
+    """
+    Ensure each origin is scheme://host[:port] with no trailing slash or path,
+    to satisfy django-cors-headers and Django CSRF checks.
+    """
+    sanitized = []
+    for o in origins or []:
+        s = (o or '').strip()
+        if not s:
+            continue
+        # strip trailing slash early (common mistake)
+        s = s.rstrip('/')
+        try:
+            parts = urlsplit(s)
+            if parts.scheme and parts.netloc:
+                base = f"{parts.scheme}://{parts.netloc}"
+            else:
+                # If it's not a full URL, keep as-is after trimming
+                base = s
+        except Exception:
+            base = s
+        if base and base not in sanitized:
+            sanitized.append(base)
+    return sanitized
 
 
 # Quick-start development settings - unsuitable for production
@@ -218,6 +245,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # CORS configuration (env-driven with safe defaults for dev)
 _env_cors_origins = _get_list_from_env('CORS_ALLOWED_ORIGINS')
+_env_cors_origins = _sanitize_origins(_env_cors_origins) if _env_cors_origins is not None else None
 # In development, allow all origins unless explicitly configured via env.
 if DEBUG and _env_cors_origins is None:
     CORS_ALLOW_ALL_ORIGINS = True
@@ -252,6 +280,7 @@ CORS_ALLOW_METHODS = [
 
 
 _env_csrf_trusted = _get_list_from_env('CSRF_TRUSTED_ORIGINS')
+_env_csrf_trusted = _sanitize_origins(_env_csrf_trusted) if _env_csrf_trusted is not None else None
 CSRF_TRUSTED_ORIGINS = _env_csrf_trusted if _env_csrf_trusted is not None else [
     "http://localhost:5173",
     "http://127.0.0.1:8000",
