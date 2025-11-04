@@ -25,6 +25,7 @@ export const Column = ({
   handleEditTask,
   handleDeleteTask,
   currentUserRole,
+  totalCards,
 }) => {
   return (
     <div
@@ -47,7 +48,7 @@ export const Column = ({
         onDragStart={onColumnDragStart}
         onDeleteColumn={onDeleteColumn}
         maxHeaderHeight={maxHeaderHeight}
-        currentUserRole={currentUserRole}
+  currentUserRole={currentUserRole}
       />
 
       <ul
@@ -60,6 +61,8 @@ export const Column = ({
             key={card.id}
             card={card}
             column={column}
+            columnCount={(column.cards || []).length}
+            totalCards={totalCards}
             onEdit={handleEditTask}
             onDelete={handleDeleteTask}
             onDragStart={onCardDragStart}

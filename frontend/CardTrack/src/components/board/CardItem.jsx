@@ -3,7 +3,7 @@ import { AuthContext } from '../../context/AuthContext.jsx';
 import { useParams } from 'react-router-dom';
 import * as boardApi from '../../utils/boardApi';
 
-export const CardItem = ({ card, column, onEdit, onDelete, onDragStart, onDragOver, onDrop, onDoubleClick, currentUserRole }) => {
+export const CardItem = ({ card, column, columnCount, totalCards, onEdit, onDelete, onDragStart, onDragOver, onDrop, onDoubleClick, currentUserRole }) => {
   const isViewer = currentUserRole === 'viewer';
   const { token } = useContext(AuthContext);
   const { boardId } = useParams();
@@ -57,6 +57,10 @@ export const CardItem = ({ card, column, onEdit, onDelete, onDragStart, onDragOv
       title={card.description || ''}
       onDoubleClick={onDoubleClick}
     >
+      {/* badge showing cards-in-column / total-cards-on-board */}
+      <div className="task-counter" aria-hidden>
+        {(typeof columnCount === 'number' ? columnCount : (column.cards ? column.cards.length : 0)) + '/' + (typeof totalCards === 'number' ? totalCards : 0)}
+      </div>
       <div className="flex-1">
         <div className="task-title">{card.title}</div>
         <div className="task-details">

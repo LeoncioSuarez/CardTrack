@@ -33,4 +33,20 @@ export async function getMe(token) {
   return data;
 }
 
+export async function changePassword(token, userId, current_password, new_password) {
+  if (!token) throw new Error('No token');
+  const res = await fetch(`${API_BASE_URL}/users/${userId}/change-password/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Token ${token}` },
+    body: JSON.stringify({ current_password, new_password }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    // prefer 'detail' or 'message' or fallback
+    const err = data.detail || data.message || JSON.stringify(data) || 'Failed to change password';
+    throw new Error(err);
+  }
+  return data;
+}
+
 export default { login, register, getMe };
