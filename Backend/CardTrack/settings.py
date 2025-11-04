@@ -139,7 +139,7 @@ DB_SSL_CA = os.getenv('DB_SSL_CA')  # path to CA file
 DB_SSL_CA_PEM = os.getenv('DB_SSL_CA_PEM')  # CA contents (PEM) if you prefer storing in env
 
 # If CA content is provided via env, write it to a temp file so MySQL client can use it
-if not DB_SSL_CA and DB_SSL_CA_PEM:
+if (not DB_SSL_CA or (DB_SSL_CA and not os.path.exists(DB_SSL_CA))) and DB_SSL_CA_PEM:
     try:
         ca_path = BASE_DIR / 'aiven-ca.pem'
         with open(ca_path, 'w', encoding='utf-8') as f:
@@ -150,7 +150,7 @@ if not DB_SSL_CA and DB_SSL_CA_PEM:
         pass
 
 _db_options = {}
-if DB_SSL_CA:
+if DB_SSL_CA and os.path.exists(DB_SSL_CA):
     # Verify server certificate with provided CA
     _db_options['ssl'] = {'ca': DB_SSL_CA}
 elif (DB_SSL_MODE or '').upper() in ('REQUIRED', 'VERIFY_CA', 'VERIFY_IDENTITY'):
