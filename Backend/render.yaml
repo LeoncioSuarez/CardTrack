@@ -9,7 +9,7 @@ services:
     startCommand: gunicorn CardTrack.wsgi:application --bind 0.0.0.0:$PORT
     healthCheckPath: /api/healthz
     autoDeploy: true
-
+    
     # Set these in the Render Dashboard (Settings -> Environment) after creating the service
     # envVars:
     #   - key: SECRET_KEY

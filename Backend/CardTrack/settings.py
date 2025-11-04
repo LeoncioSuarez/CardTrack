@@ -19,6 +19,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 dotenv_path = BASE_DIR / 'credentials.env'
 load_dotenv(dotenv_path, override=True)
 
+# Feature flags / toggles
+USE_CHANNELS = os.getenv('USE_CHANNELS', 'False').lower() in ('1', 'true', 'yes', 'on')
+
 
 def _get_list_from_env(name: str):
     value = os.getenv(name)
@@ -54,11 +57,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'channels',
     'corsheaders',
     'rest_framework',
     'Product',
 ]
+
+if USE_CHANNELS:
+    INSTALLED_APPS.append('channels')
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -100,26 +105,27 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'CardTrack.wsgi.application'
 
-# Channels (ASGI)
-ASGI_APPLICATION = 'CardTrack.asgi.application'
+# Channels (ASGI) — enabled only if USE_CHANNELS=True
+if USE_CHANNELS:
+    ASGI_APPLICATION = 'CardTrack.asgi.application'
 
-# Channel layers: in dev use in-memory; for prod you can set REDIS_URL to enable Redis
-REDIS_URL = os.getenv('REDIS_URL')
-if REDIS_URL:
-    CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': 'channels_redis.core.RedisChannelLayer',
-            'CONFIG': {
-                'hosts': [REDIS_URL],
+    # Channel layers: in dev use in-memory; for prod you can set REDIS_URL to enable Redis
+    REDIS_URL = os.getenv('REDIS_URL')
+    if REDIS_URL:
+        CHANNEL_LAYERS = {
+            'default': {
+                'BACKEND': 'channels_redis.core.RedisChannelLayer',
+                'CONFIG': {
+                    'hosts': [REDIS_URL],
+                },
             },
-        },
-    }
-else:
-    CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': 'channels.layers.InMemoryChannelLayer',
-        },
-    }
+        }
+    else:
+        CHANNEL_LAYERS = {
+            'default': {
+                'BACKEND': 'channels.layers.InMemoryChannelLayer',
+            },
+        }
 
 
 # Database
