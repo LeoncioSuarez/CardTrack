@@ -10,9 +10,16 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='column',
-            name='color',
-            field=models.CharField(default='#0B97F4', max_length=7),
+        # This branch also attempted to add the same column. Make it idempotent
+        # and avoid state duplication by only performing a conditional DB change.
+        migrations.RunSQL(
+            sql=(
+                "ALTER TABLE `product_column` "
+                "ADD COLUMN IF NOT EXISTS `color` varchar(7) "
+                "NOT NULL DEFAULT '#0B97F4';"
+            ),
+            reverse_sql=(
+                "ALTER TABLE `product_column` DROP COLUMN IF EXISTS `color`;"
+            ),
         ),
     ]

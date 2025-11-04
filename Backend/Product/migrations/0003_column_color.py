@@ -10,9 +10,26 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='column',
-            name='color',
-            field=models.CharField(default='#007ACF', max_length=7),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    sql=(
+                        "ALTER TABLE `product_column` "
+                        "ADD COLUMN IF NOT EXISTS `color` varchar(7) "
+                        "NOT NULL DEFAULT '#007ACF';"
+                    ),
+                    reverse_sql=(
+                        "ALTER TABLE `product_column` "
+                        "DROP COLUMN IF EXISTS `color`;"
+                    ),
+                )
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name='column',
+                    name='color',
+                    field=models.CharField(default='#007ACF', max_length=7),
+                ),
+            ],
         ),
     ]
