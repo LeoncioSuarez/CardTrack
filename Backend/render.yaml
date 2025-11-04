@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: cardtrack-backend
+    env: python
+    plan: free
+    branch: rama-backend
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn CardTrack.wsgi:application --bind 0.0.0.0:$PORT
+    healthCheckPath: /api/healthz
+    autoDeploy: true
+
+    # Set these in the Render Dashboard (Settings -> Environment) after creating the service
+    # envVars:
+    #   - key: SECRET_KEY
+    #     value: "change-me"
+    #   - key: DEBUG
+    #     value: "False"
+    #   - key: ALLOWED_HOSTS
+    #     value: "your-service.onrender.com"
+    #   - key: CORS_ALLOWED_ORIGINS
+    #     value: "https://your-frontend.vercel.app"
+    #   - key: DB_NAME
+    #     value: "<planetscale-db-name>"
+    #   - key: DB_USER
+    #     value: "<planetscale-username>"
+    #   - key: DB_PASSWORD
+    #     value: "<planetscale-password>"
+    #   - key: DB_HOST
+    #     value: "<planetscale-host>"
+    #   - key: DB_PORT
+    #     value: "3306"
