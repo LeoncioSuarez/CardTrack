@@ -1,10 +1,22 @@
 from django.db import models
 
 #   User
+def upload_to_user_profile(instance, filename):
+    """Place uploaded user profile images under profilepic/users/<user_id>/filename.
+
+    If the instance has no id yet (unsaved), place in a temp folder with timestamp.
+    """
+    import time, os
+    base = 'profilepic/users'
+    name = os.path.basename(filename)
+    if instance and getattr(instance, 'id', None):
+        return f"{base}/{instance.id}/{name}"
+    else:
+        return f"{base}/temp/{int(time.time())}_{name}"
+
+
 class User(models.Model):
-    # Use jpg default (repo contains default.jpg). Previous migrations used default.png; serializer will fallback
-    # to default.jpg when needed to avoid 404s caused by a missing default.png file.
-    profilepicture = models.ImageField(upload_to='profilepic/', default='profilepic/default.jpg')
+    profilepicture = models.ImageField(upload_to=upload_to_user_profile, default='profilepic/default.png')
     name = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
     password_hash = models.CharField(max_length=255)  
@@ -32,6 +44,56 @@ class Board(models.Model):
 
     def __str__(self):
         return f"{self.title} ({self.user.email})"
+
+
+class BoardMembership(models.Model):
+    """Membership and roles per board.
+
+    Roles:
+    - owner: full control (typically the Board.user)
+    - editor: can modify board content (columns/cards), invite viewers
+    - viewer: read-only access
+    """
+
+    ROLE_OWNER = 'owner'
+    ROLE_EDITOR = 'editor'
+    ROLE_VIEWER = 'viewer'
+    ROLE_CHOICES = [
+        (ROLE_OWNER, 'Owner'),
+        (ROLE_EDITOR, 'Editor'),
+        (ROLE_VIEWER, 'Viewer'),
+    ]
+
+    board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name='memberships')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='memberships')
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default=ROLE_VIEWER)
+    invited_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('board', 'user')
+        indexes = [
+            models.Index(fields=['board', 'user']),
+        ]
+        verbose_name = 'Board Membership'
+        verbose_name_plural = 'Board Memberships'
+
+    def __str__(self):
+        return f"{self.user.email} -> {self.board.title} ({self.role})"
+
+
+# Ensure board owner is always recorded as a membership with role=owner
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+
+@receiver(post_save, sender=Board)
+def ensure_owner_membership(sender, instance: Board, created: bool, **kwargs):
+    # Create or ensure owner membership exists for the board owner
+    BoardMembership.objects.get_or_create(
+        board=instance,
+        user=instance.user,
+        defaults={'role': BoardMembership.ROLE_OWNER},
+    )
 
 
 #   Column
