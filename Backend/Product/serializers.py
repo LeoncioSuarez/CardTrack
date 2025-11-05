@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
 from .models import User, Board, Column, Card, CarouselImage
-from .models import BoardMembership
 from .models import Release
 
 
@@ -46,59 +45,39 @@ class BoardSerializer(serializers.ModelSerializer):
         }
 
 
-class BoardMembershipSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = BoardMembership
-        fields = ['id', 'board', 'user', 'role', 'invited_at']
-        read_only_fields = ['id', 'board', 'invited_at']
-
-
 class UserSerializer(serializers.ModelSerializer):
-    # password is write-only and optional for updates
-    password = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    password = serializers.CharField(write_only=True, required=True)
+    profilepicture_url = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = User
-        fields = ["profilepicture","id", "name", "email", "password", "aboutme", "registration_date", "last_login"]
+        fields = ["profilepicture","profilepicture_url","id", "name", "email", "password", "aboutme", "registration_date", "last_login"]
         extra_kwargs = {
             "password": {"write_only": True}
         }
 
     def create(self, validated_data):
-        password = validated_data.pop("password", None)
-        if password:
-            validated_data["password_hash"] = make_password(password)
-        # Avoid saving a file named like the default image (which could overwrite it)
-        pf = validated_data.get('profilepicture')
-        if pf and hasattr(pf, 'name'):
-            name = pf.name or ''
-            lname = name.lower()
-            if lname.startswith('default') or lname in ('profilepic/default.png', 'profilepic/default.jpg', 'default.png', 'default.jpg'):
-                import time, os
-                ext = os.path.splitext(name)[1] or ''
-                pf.name = f"user_new_{int(time.time())}{ext}"
-                validated_data['profilepicture'] = pf
+        password = validated_data.pop("password")
+        validated_data["password_hash"] = make_password(password)
         return super().create(validated_data)
 
-    def update(self, instance, validated_data):
-        # Handle password hashing if password present in payload
-        password = validated_data.pop("password", None)
-        if password:
-            instance.password_hash = make_password(password)
-            instance.save()
-        # If a new profile picture is uploaded with a reserved filename (e.g. 'default.png'),
-        # rename it to avoid overwriting the default image and to avoid confusing file placements.
-        pf = validated_data.get('profilepicture')
-        if pf and hasattr(pf, 'name'):
-            name = pf.name or ''
-            lname = name.lower()
-            if lname.startswith('default') or lname in ('profilepic/default.png', 'profilepic/default.jpg', 'default.png', 'default.jpg'):
-                import time, os
-                ext = os.path.splitext(name)[1] or ''
-                pf.name = f"user_{instance.id}_{int(time.time())}{ext}"
-                validated_data['profilepicture'] = pf
+    def get_profilepicture_url(self, obj):
+        """Devuelve una URL absoluta para la imagen de perfil.
 
-        return super().update(instance, validated_data)
+        Si por alguna razón el archivo referenciado no existe o genera error, se
+        hace fallback a `/media/profilepic/default.jpg` (el repositorio contiene default.jpg).
+        """
+        request = self.context.get('request')
+        try:
+            if obj.profilepicture and request:
+                # La mayoría de los storages proveen .url; intentamos construir la URL absoluta
+                return request.build_absolute_uri(obj.profilepicture.url)
+        except Exception:
+            pass
+
+        if request:
+            return request.build_absolute_uri('/media/profilepic/default.jpg')
+        return '/media/profilepic/default.jpg'
 
 
 class CarouselImageSerializer(serializers.ModelSerializer):
@@ -123,5 +102,3 @@ class ReleaseSerializer(serializers.ModelSerializer):
         model = Release
         fields = ['id', 'release_title', 'release_description', 'release_date']
         read_only_fields = ['id']
-
-

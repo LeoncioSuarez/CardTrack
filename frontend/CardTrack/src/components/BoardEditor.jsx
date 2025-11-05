@@ -1,16 +1,10 @@
-import React, { useEffect, useState, useContext, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useContext, useMemo, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext.jsx';
-import * as boardApi from '../utils/boardApi';
-import Column from './board/Column';
-import ColumnHeader from './board/ColumnHeader';
-import CardItem from './board/CardItem';
-import TaskModal from './board/TaskModal';
-import AddColumnModal from './board/AddColumnModal';
+import { AuthContext } from '../AuthContext.jsx';
+import { API_BASE_URL } from '../utils/constants.js';
+import { getDisplayName, getDisplayEmail } from '../utils/display.js';
 
-const API_BASE_URL = 'http://127.0.0.1:8000/api';
-
-export const BoardEditor = () => {
+const BoardEditor = () => {
   const { boardId } = useParams();
   const { token, user } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -30,19 +24,12 @@ export const BoardEditor = () => {
   const [draggingCard, setDraggingCard] = useState(null);
 
   const [showTaskModal, setShowTaskModal] = useState(false);
-  const [taskForm, setTaskForm] = useState({ columnId: '', title: '', description: '', type: 'description', checklist: [] });
+  const [taskForm, setTaskForm] = useState({ columnId: '', title: '', description: '' });
 
   const [showAddColumnModal, setShowAddColumnModal] = useState(false);
   const [newColumn, setNewColumn] = useState({ title: '', color: '#007ACF' });
 
   const [showUsersModal, setShowUsersModal] = useState(false);
-  const [members, setMembers] = useState([]);
-  const [currentUserRole, setCurrentUserRole] = useState(null);
-  const [editingRoleMemberId, setEditingRoleMemberId] = useState(null);
-  const [editingRoleValue, setEditingRoleValue] = useState(null);
-  const [viewerNoticeVisible, setViewerNoticeVisible] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteLoading, setInviteLoading] = useState(false);
 
   const headerRefs = useRef(new Map());
   const [maxHeaderHeight, setMaxHeaderHeight] = useState(0);
@@ -76,109 +63,96 @@ export const BoardEditor = () => {
     return () => window.removeEventListener('resize', onResize);
   }, [recalcHeaderHeights]);
 
+  const authHeaders = useMemo(
+    () => ({ 'Content-Type': 'application/json', 'Authorization': `Token ${token}` }),
+    [token]
+  );
+
+  const fetchJson = useCallback(async (url) => {
+    const res = await fetch(url, { headers: authHeaders });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `Error HTTP ${res.status}`);
+    }
+    return res.json();
+  }, [authHeaders]);
+
   const loadBoardAndColumns = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const [boardData, columnsData] = await Promise.all([
-        boardApi.getBoard(boardId, token),
-        boardApi.getColumns(boardId, token),
+        fetchJson(`${API_BASE_URL}/boards/${boardId}/`),
+        fetchJson(`${API_BASE_URL}/boards/${boardId}/columns/`),
       ]);
       setBoard(boardData);
-      const sortedCols = [...columnsData]
-        .sort((a, b) => a.position - b.position)
+      const sortedCols = [...columnsData].sort((a, b) => a.position - b.position)
         .map(col => ({ ...col, cards: (col.cards || []).sort((a, b) => a.position - b.position) }));
       setColumns(sortedCols);
-      // load members to determine current user role (so UI can be read-only for viewers)
-      try {
-        const m = await boardApi.getMembers(boardId, token);
-        setMembers(m);
-        const myEmail = (typeof user !== 'undefined' && user && user.email) ? user.email : null;
-        const me = myEmail ? m.find(x => x.user_email === myEmail) : null;
-        setCurrentUserRole(me ? me.role : null);
-      } catch (err) {
-        // don't block board load if members can't be fetched
-        console.warn('Could not load members to compute role', err);
-      }
     } catch (e) {
       setError(e.message);
     } finally {
       setLoading(false);
     }
-  }, [boardId, token, user]);
+  }, [boardId, fetchJson]);
 
   useEffect(() => {
     if (!token || !boardId) return;
     loadBoardAndColumns();
-    // preload members if modal open
-    if (showUsersModal) {
-      (async () => {
-        try {
-          const m = await boardApi.getMembers(boardId, token);
-          setMembers(m);
-          // compute current user role using AuthContext user email when available
-          const myEmail = (typeof user !== 'undefined' && user && user.email) ? user.email : null;
-          const me = myEmail ? m.find(x => x.user_email === myEmail) : null;
-          setCurrentUserRole(me ? me.role : null);
-        } catch (e) {
-          console.warn('No se pudieron cargar los miembros', e);
-        }
-      })();
-    }
-  }, [boardId, token, loadBoardAndColumns, showUsersModal, user]);
-
-  // helper to normalize member image paths
-  const backendBase = API_BASE_URL.replace(/\/api\/?$/, '');
-  const mediaBase = backendBase + '/media/';
-  const defaultMemberProfile = mediaBase + 'profilepic/default.jpg';
-  const normalizeMemberImage = (img) => {
-    if (!img) return defaultMemberProfile;
-    if (typeof img !== 'string') return defaultMemberProfile;
-    if (img.startsWith('http://') || img.startsWith('https://')) return img;
-    const cleaned = img.replace(/^\/+/, '');
-    if (cleaned.startsWith('media/')) return backendBase + '/' + cleaned;
-    return mediaBase + cleaned;
-  };
-
-    // Show viewer notice when we know the user's role is 'viewer' and it hasn't been dismissed in this session
-    useEffect(() => {
-      if (currentUserRole === 'viewer') {
-        try {
-          const dismissed = sessionStorage.getItem(`viewer_notice_dismissed_board_${boardId}`);
-          if (!dismissed) setViewerNoticeVisible(true);
-        } catch (err) {
-          void err;
-        }
-      } else {
-        setViewerNoticeVisible(false);
-      }
-    }, [currentUserRole, boardId]);
+  }, [boardId, token, loadBoardAndColumns]);
 
   const createColumn = async (title, color) => {
     const position = columns.length;
-    await boardApi.createColumn(boardId, token, title, color, position);
+    const res = await fetch(`${API_BASE_URL}/boards/${boardId}/columns/`, {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify({ title, position, color }),
+    });
+    if (!res.ok) throw new Error('No se pudo crear la columna');
     await loadBoardAndColumns();
   };
 
   const updateColumn = async (columnId, payload) => {
-    await boardApi.updateColumn(boardId, token, columnId, payload);
+    const res = await fetch(`${API_BASE_URL}/boards/${boardId}/columns/${columnId}/`, {
+      method: 'PATCH',
+      headers: authHeaders,
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error('No se pudo actualizar la columna');
   };
 
   const deleteColumn = async (columnId) => {
-    await boardApi.deleteColumn(boardId, token, columnId);
-    await loadBoardAndColumns();
+    const res = await fetch(`${API_BASE_URL}/boards/${boardId}/columns/${columnId}/`, {
+      method: 'DELETE',
+      headers: authHeaders,
+    });
+    if (!res.ok && res.status !== 204) throw new Error('No se pudo eliminar la columna');
   };
 
   const createCard = async (columnId, title, description, position) => {
-    await boardApi.createCard(boardId, token, columnId, title, description, position);
+    const res = await fetch(`${API_BASE_URL}/boards/${boardId}/columns/${columnId}/cards/`, {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify({ title, description, position }),
+    });
+    if (!res.ok) throw new Error('No se pudo crear la tarea');
   };
 
   const updateCard = async (columnId, cardId, payload) => {
-    await boardApi.updateCard(boardId, token, columnId, cardId, payload);
+    const res = await fetch(`${API_BASE_URL}/boards/${boardId}/columns/${columnId}/cards/${cardId}/`, {
+      method: 'PATCH',
+      headers: authHeaders,
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error('No se pudo actualizar la tarea');
   };
 
   const deleteCard = async (columnId, cardId) => {
-    await boardApi.deleteCard(boardId, token, columnId, cardId);
+    const res = await fetch(`${API_BASE_URL}/boards/${boardId}/columns/${columnId}/cards/${cardId}/`, {
+      method: 'DELETE',
+      headers: authHeaders,
+    });
+    if (!res.ok && res.status !== 204) throw new Error('No se pudo eliminar la tarea');
   };
 
   const handleAddColumn = () => {
@@ -202,13 +176,13 @@ export const BoardEditor = () => {
       alert('Primero crea una columna.');
       return;
     }
-    setTaskForm({ columnId: String(columns[0].id), title: '', description: '', type: 'description', checklist: [] });
+    setTaskForm({ columnId: String(columns[0].id), title: '', description: '' });
     setShowTaskModal(true);
   };
 
   const closeTaskModal = () => {
     setShowTaskModal(false);
-    setTaskForm({ columnId: '', title: '', description: '', type: 'description', checklist: [] });
+    setTaskForm({ columnId: '', title: '', description: '' });
   };
 
   const submitTaskModal = async () => {
@@ -219,29 +193,7 @@ export const BoardEditor = () => {
     if (!col) return;
     try {
       const position = (col.cards || []).length;
-      // If checklist mode, serialize checklist into description as a simple markdown-like list
-      let payloadDescription = '';
-      if (taskForm.type === 'checklist' && Array.isArray(taskForm.checklist) && taskForm.checklist.length) {
-        payloadDescription = (taskForm.checklist || []).map(i => `- [ ] ${i}`).join('\n');
-      } else {
-        payloadDescription = (taskForm.description || '').trim();
-      }
-      if (taskForm.editingCardId) {
-        // editing existing card
-        const cardId = taskForm.editingCardId;
-        const origColumnId = taskForm.originalColumnId ? Number(taskForm.originalColumnId) : Number(colId);
-        const payload = { title, description: payloadDescription };
-        const newColumnId = Number(taskForm.columnId);
-        if (newColumnId !== origColumnId) {
-          // request backend to move column
-          payload.column = newColumnId;
-          const target = columns.find(c => c.id === newColumnId);
-          payload.position = target ? (target.cards || []).length : 0;
-        }
-        await updateCard(origColumnId, cardId, payload);
-      } else {
-        await createCard(col.id, title, payloadDescription, position);
-      }
+      await createCard(col.id, title, taskForm.description.trim(), position);
       closeTaskModal();
       await loadBoardAndColumns();
     } catch (e) {
@@ -290,29 +242,14 @@ export const BoardEditor = () => {
   };
 
   const handleEditTask = async (column, card) => {
-    // Open edit modal instead of prompt. Populate form with card data.
+    const newTitle = window.prompt('Nuevo nombre de la tarea:', card.title);
+    if (newTitle === null) return;
+    const newDescription = window.prompt('Nueva descripción (opcional):', card.description || '');
     try {
-      const desc = card.description || '';
-      const lines = desc.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-      const items = lines.map((l) => {
-        const m = l.match(/^[-*]\s*\[(x|X| |)\]\s*(.*)$/);
-        if (m) return { isChecklist: true, checked: !!m[1] && m[1].toLowerCase() === 'x', text: m[2] };
-        return { isChecklist: false, text: l };
-      });
-      const allChecklist = items.length > 0 && items.every(i => i.isChecklist);
-      const checklist = allChecklist ? items.map(i => i.text) : [];
-      setTaskForm({
-        columnId: String(column.id),
-        title: card.title || '',
-        description: allChecklist ? '' : (card.description || ''),
-        type: allChecklist ? 'checklist' : 'description',
-        checklist,
-        editingCardId: card.id,
-        originalColumnId: column.id,
-      });
-      setShowTaskModal(true);
+      await updateCard(column.id, card.id, { title: newTitle.trim(), description: (newDescription || '').trim() });
+      await loadBoardAndColumns();
     } catch (e) {
-      alert(e.message || 'No se pudo abrir el editor de la tarea');
+      alert(e.message);
     }
   };
 
@@ -333,8 +270,6 @@ export const BoardEditor = () => {
   };
 
   const onColumnDragStart = (e, columnId) => {
-    // prevent column dragging for viewers
-    if (currentUserRole === 'viewer') return;
     setDraggingColumnId(columnId);
     e.dataTransfer.setData('text/column-id', String(columnId));
     e.dataTransfer.effectAllowed = 'move';
@@ -346,7 +281,6 @@ export const BoardEditor = () => {
 
   const onColumnDrop = async (e, targetColumnId) => {
     e.preventDefault();
-    if (currentUserRole === 'viewer') return;
     const sourceId = draggingColumnId || Number(e.dataTransfer.getData('text/column-id'));
     if (!sourceId || sourceId === targetColumnId) return;
 
@@ -371,8 +305,6 @@ export const BoardEditor = () => {
   };
 
   const onCardDragStart = (e, card, fromColumnId) => {
-    // prevent card dragging for viewers
-    if (currentUserRole === 'viewer') return;
     setDraggingCard({ cardId: card.id, fromColumnId });
     e.dataTransfer.setData('application/x-card', JSON.stringify({ cardId: card.id, fromColumnId }));
     e.dataTransfer.effectAllowed = 'move';
@@ -385,7 +317,6 @@ export const BoardEditor = () => {
 
   const onCardDropOnListEnd = async (e, targetColumn) => {
     e.preventDefault();
-    if (currentUserRole === 'viewer') return;
     const data = draggingCard || JSON.parse(e.dataTransfer.getData('application/x-card') || '{}');
     if (!data || !data.cardId) return;
 
@@ -398,7 +329,6 @@ export const BoardEditor = () => {
 
   const onCardDropOnItem = async (e, targetColumn, targetCard) => {
     e.preventDefault();
-    if (currentUserRole === 'viewer') return;
     const data = draggingCard || JSON.parse(e.dataTransfer.getData('application/x-card') || '{}');
     if (!data || !data.cardId) return;
 
@@ -413,7 +343,6 @@ export const BoardEditor = () => {
   };
 
   const moveCard = async (sourceColumnId, cardId, targetColumnId, targetIndex) => {
-    if (currentUserRole === 'viewer') return;
     if (!sourceColumnId || !cardId) return;
 
     const currentCols = [...columns].map(c => ({ ...c, cards: [...(c.cards || [])] }));
@@ -467,51 +396,104 @@ export const BoardEditor = () => {
 
   return (
     <div className="board-editor-container">
-      <div className={"board-editor-title" + (currentUserRole === 'viewer' ? ' board-editor-title--viewer' : '')}>
+      <div className="board-editor-title">
         <h1>{board ? board.title : 'Tablero Desconocido'}</h1>
       </div>
 
-  <div className={"board-columns-container " + (columns && columns.length > 4 ? 'columns-scroll' : 'columns-fit')}>
-        {currentUserRole === 'viewer' && viewerNoticeVisible && (
-          <div className="viewer-notice" role="status" aria-live="polite">
-            <div className="viewer-notice__text">Actualmente te encuentras con el rango de visitante, por lo que no puedes realizar ningún tipo de cambio en la tabla.</div>
-            <button className="viewer-notice__close" aria-label="Cerrar" onClick={() => {
-              try { sessionStorage.setItem(`viewer_notice_dismissed_board_${boardId}`, '1'); } catch(err) { void err; }
-              setViewerNoticeVisible(false);
-            }}>×</button>
-          </div>
-        )}
-        {(() => {
-          const totalCards = (columns || []).reduce((s, c) => s + ((c.cards && c.cards.length) || 0), 0);
-          return columns.map((column) => (
-          <Column
+      <div className="board-columns-container">
+        {columns.map((column) => (
+          <div
             key={column.id}
-            column={column}
-            headerRefs={headerRefs}
-            maxHeaderHeight={maxHeaderHeight}
-            editingColumnId={editingColumnId}
-            editingColumnTitle={editingColumnTitle}
-            editingColumnColor={editingColumnColor}
-            setEditingColumnTitle={setEditingColumnTitle}
-            setEditingColumnColor={setEditingColumnColor}
-            confirmEditColumn={confirmEditColumn}
-            startEditColumn={startEditColumn}
-            setEditingColumnId={setEditingColumnId}
-            onColumnDragOver={onColumnDragOver}
-            onColumnDrop={onColumnDrop}
-            onColumnDragStart={onColumnDragStart}
-            onDeleteColumn={handleDeleteColumn}
-            onCardDragOverList={onCardDragOverList}
-            onCardDropOnListEnd={onCardDropOnListEnd}
-            onCardDragStart={onCardDragStart}
-            onCardDropOnItem={onCardDropOnItem}
-            handleEditTask={handleEditTask}
-            handleDeleteTask={handleDeleteTask}
-            currentUserRole={currentUserRole}
-            totalCards={totalCards}
-          />
-        ))
-        })()}
+            className="board-column"
+            onDragOver={onColumnDragOver}
+            onDrop={(e) => onColumnDrop(e, column.id)}
+          >
+            <div
+              className="column-header"
+              ref={(el) => { if (el) headerRefs.current.set(column.id, el); }}
+              style={{ height: maxHeaderHeight ? `${maxHeaderHeight}px` : 'auto', backgroundColor: column.color || 'var(--color-accent-primary)' }}
+              draggable
+              onDragStart={(e) => onColumnDragStart(e, column.id)}
+            >
+                {editingColumnId === column.id ? (
+                  <>
+                    <input
+                      className="form-input"
+                      value={editingColumnTitle}
+                      onChange={(e) => setEditingColumnTitle(e.target.value)}
+                      placeholder="Nombre de columna"
+                      style={{ marginRight: 8 }}
+                    />
+                    <input
+                      type="color"
+                      value={editingColumnColor}
+                      onChange={(e) => setEditingColumnColor(e.target.value)}
+                      title="Color del encabezado"
+                      className="color-input"
+                      style={{ width: 36, height: 36, padding: 0, marginRight: 8, cursor: 'pointer' }}
+                    />
+                    <div className="column-actions">
+                      <button className="icon-button" title="Guardar" onClick={() => confirmEditColumn(column)}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 4h10l4 4v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M15 4v5H9V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </button>
+                      <button className="icon-button" title="Cancelar" onClick={() => setEditingColumnId(null)}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <h3 title={column.title} style={{ wordBreak: 'break-word' }}>{column.title}</h3>
+                    <div className="column-actions">
+                      <button className="icon-button" title="Renombrar" onClick={() => startEditColumn(column)}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 21v-3.75l11-11L20.75 9 9.75 20H3z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </button>
+                      <button className="icon-button icon-button--danger" title="Eliminar" onClick={() => handleDeleteColumn(column)}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/><path d="M8 6v12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/><path d="M10 11v6M14 11v6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </button>
+                    </div>
+                  </>
+                )}
+            </div>
+
+            <ul
+              className="tasks-list"
+              onDragOver={onCardDragOverList}
+              onDrop={(e) => onCardDropOnListEnd(e, column)}
+            >
+              {(column.cards || []).map((card) => (
+                <li
+                  key={card.id}
+                  className={`task-item`}
+                  draggable
+                  onDragStart={(e) => onCardDragStart(e, card, column.id)}
+                  onDragOver={onCardDragOverList}
+                  onDrop={(e) => onCardDropOnItem(e, column, card)}
+                  title={card.description || ''}
+                  onDoubleClick={(e) => {
+                    const li = e.currentTarget;
+                    li.classList.toggle('expanded');
+                  }}
+                >
+                  <div style={{ flex: 1 }}>
+                    <div className="task-title">{card.title}</div>
+                    <div className="task-details">
+                      <p style={{ marginTop: 8, marginBottom: 8, color: 'var(--color-secondary-text)' }}>{card.description}</p>
+                    </div>
+                  </div>
+                  <div className="task-actions">
+                    <button className="icon-button" title="Editar" onClick={() => handleEditTask(column, card)}>
+                      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 21l3-1 11-11 2 2L8 22l-5 0z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </button>
+                    <button className="icon-button icon-button--danger" title="Eliminar" onClick={() => handleDeleteTask(column, card)}>
+                      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M8 6v14a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </div>
 
       
@@ -520,132 +502,96 @@ export const BoardEditor = () => {
           <button className="secondary-button" onClick={() => setShowUsersModal(true)}>Ver usuarios</button>
         </div>
         <div className="board-bottom-bar__right">
-          {currentUserRole !== 'viewer' && (
-            <>
-              <button className="main-button main-button--small" onClick={handleAddColumn}>+ Añadir columna</button>
-              <button className="main-button main-button--small" onClick={openTaskModal}>+ Añadir tarea</button>
-            </>
-          )}
+          <button className="main-button main-button--small" onClick={handleAddColumn}>+ Añadir columna</button>
+          <button className="main-button main-button--small" onClick={openTaskModal}>+ Añadir tarea</button>
         </div>
       </div>
 
-      <AddColumnModal
-        visible={showAddColumnModal}
-        newColumn={newColumn}
-        setNewColumn={setNewColumn}
-        onClose={() => setShowAddColumnModal(false)}
-        onSubmit={submitAddColumn}
-      />
+      {showAddColumnModal && (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <div className="modal-content">
+            <div className="modal-title">Añadir columna</div>
+            <div className="form-row">
+              <label className="form-label">Nombre</label>
+              <input
+                className="form-input"
+                placeholder="Ej: En progreso"
+                value={newColumn.title}
+                onChange={(e) => setNewColumn(prev => ({ ...prev, title: e.target.value }))}
+              />
+            </div>
+            <div className="form-row">
+              <label className="form-label">Color del encabezado</label>
+              <input
+                type="color"
+                value={newColumn.color}
+                onChange={(e) => setNewColumn(prev => ({ ...prev, color: e.target.value }))}
+                title="Color del encabezado"
+                style={{ width: 50, height: 36, padding: 0, border: 'none', background: 'transparent', cursor: 'pointer' }}
+              />
+            </div>
+            <div className="modal-actions">
+              <button className="secondary-button" onClick={() => setShowAddColumnModal(false)}>Cancelar</button>
+              <button className="main-button" onClick={submitAddColumn} disabled={!newColumn.title.trim()}>Crear columna</button>
+            </div>
+          </div>
+        </div>
+      )}
 
-      <TaskModal
-        visible={showTaskModal}
-        columns={columns}
-        taskForm={taskForm}
-        setTaskForm={setTaskForm}
-        onSubmit={submitTaskModal}
-        onClose={closeTaskModal}
-      />
+      {showTaskModal && (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <div className="modal-content">
+            <div className="modal-title">Añadir tarea</div>
+            <div className="form-row">
+              <label className="form-label">Columna</label>
+              <select
+                className="form-input"
+                value={taskForm.columnId}
+                onChange={(e) => setTaskForm(prev => ({ ...prev, columnId: e.target.value }))}
+              >
+                {columns.map(c => (
+                  <option key={c.id} value={c.id}>{c.title}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-row">
+              <label className="form-label">Nombre de la tarea</label>
+              <input
+                className="form-input"
+                placeholder="Ej: Implementar API"
+                value={taskForm.title}
+                onChange={(e) => setTaskForm(prev => ({ ...prev, title: e.target.value }))}
+              />
+            </div>
+            <div className="form-row">
+              <label className="form-label">Descripción breve</label>
+              <textarea
+                className="form-input"
+                placeholder="Opcional"
+                rows={3}
+                value={taskForm.description}
+                onChange={(e) => setTaskForm(prev => ({ ...prev, description: e.target.value }))}
+              />
+            </div>
+            <div className="modal-actions">
+              <button className="secondary-button" onClick={closeTaskModal}>Cancelar</button>
+              <button className="main-button" onClick={submitTaskModal} disabled={!taskForm.title.trim()}>Crear tarea</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showUsersModal && (
         <div className="modal-overlay" role="dialog" aria-modal="true">
           <div className="modal-content">
             <div className="modal-title">Usuarios autorizados</div>
-            <div className="main-card modal-main-card">
-              <div className="mb-8">
-                <input
-                  type="email"
-                  placeholder="Correo a invitar"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  className="invite-input"
-                />
-                <button
-                  className="main-button main-button--small"
-                  disabled={inviteLoading || !inviteEmail}
-                  onClick={async () => {
-                    if (!inviteEmail) return;
-                    setInviteLoading(true);
-                    try {
-                      await boardApi.inviteByEmail(boardId, token, inviteEmail, 'viewer');
-                      // reload members
-                      const m = await boardApi.getMembers(boardId, token);
-                      setMembers(m);
-                      setInviteEmail('');
-                    } catch (err) {
-                      alert(err.message || 'Error al invitar');
-                    } finally {
-                      setInviteLoading(false);
-                    }
-                  }}
-                >Invitar</button>
-              </div>
-
-              <ul className="members-list">
-                {members.map((m) => (
-                  <li key={m.id}>
-                    <div className="member-row">
-                      <div className="member-avatar-box">
-                        <img src={normalizeMemberImage(m.user_profilepicture || m.profilepicture || m.avatar || '')} alt="avatar" onError={(e) => { e.currentTarget.src = defaultMemberProfile; }} />
-                      </div>
-                      <div className="member-info">
-                        <div className="member-name">{m.user_name || m.user}</div>
-                        <div className="member-email">{m.user_email || m.user}</div>
-                      </div>
-                      <div className="member-role-wrapper">
-                        {editingRoleMemberId === m.id ? (
-                          <select value={editingRoleValue} onChange={async (e) => {
-                            const newRole = e.target.value;
-                            if (newRole === 'owner' && currentUserRole !== 'owner') {
-                              alert('No tienes permiso para asignar owner');
-                              return;
-                            }
-                            try {
-                              await boardApi.updateMemberRole(boardId, m.id, token, newRole);
-                              const updated = await boardApi.getMembers(boardId, token);
-                              setMembers(updated);
-                              setEditingRoleMemberId(null);
-                              setEditingRoleValue(null);
-                            } catch (err) {
-                              alert(err.message || 'No se pudo cambiar el rol');
-                            }
-                          }} onBlur={() => { setEditingRoleMemberId(null); setEditingRoleValue(null); }}>
-                            <option value="viewer">Visitante</option>
-                            <option value="editor">Editor</option>
-                            {currentUserRole === 'owner' ? <option value="owner">Propietario</option> : null}
-                          </select>
-                          ) : (
-                          <div className={`member-role-tag ${(currentUserRole === 'owner' || (currentUserRole === 'editor' && m.role === 'viewer')) ? 'member-role-clickable' : ''}`} onDoubleClick={() => {
-                            if (currentUserRole === 'owner' || (currentUserRole === 'editor' && m.role === 'viewer')) {
-                              setEditingRoleMemberId(m.id);
-                              setEditingRoleValue(m.role);
-                            }
-                          }}>{m.role === 'owner' ? 'Propietario' : m.role === 'editor' ? 'Editor' : 'Visitante'}</div>
-                        )}
-
-                        <div className="members-actions">
-                          {!((m.role === 'owner')) && currentUserRole && (currentUserRole === 'owner' || (currentUserRole === 'editor' && m.role === 'viewer')) ? (
-                            <button className="icon-button" title="Cambiar rol" onClick={() => { setEditingRoleMemberId(m.id); setEditingRoleValue(m.role); }}>
-                              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 21l3-1 11-11 2 2L8 22l-5 0z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                            </button>
-                          ) : null}
-                          {currentUserRole === 'owner' && m.role !== 'owner' ? (
-                            <button className="icon-button icon-button--danger" title="Eliminar" onClick={async () => {
-                              if (!window.confirm(`¿Eliminar el acceso de ${m.user_name || m.user}?`)) return;
-                              try {
-                                await boardApi.updateMemberRole(boardId, m.id, token, 'viewer');
-                                // or call a delete member endpoint if exists
-                                const updated = await boardApi.getMembers(boardId, token);
-                                setMembers(updated);
-                              } catch (err) { alert(err.message || 'Error'); }
-                            }}>
-                              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M8 6v14a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                            </button>
-                          ) : null}
-                        </div>
-                      </div>
-                    </div>
-                  </li>
-                ))}
+            <div className="main-card" style={{ padding: 12 }}>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                <li style={{ padding: '6px 0', borderBottom: '1px solid var(--color-border)' }}>
+                  <strong>{getDisplayName(user) || 'Usuario actual'}</strong>
+                  <div style={{ color: 'var(--color-secondary-text)', fontSize: '0.9em' }}>{getDisplayEmail(user)}</div>
+                  <div style={{ marginTop: 4 }}><span className="column-tag">Propietario</span></div>
+                </li>
               </ul>
             </div>
             <div className="modal-actions">
