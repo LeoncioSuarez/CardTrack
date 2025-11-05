@@ -9,10 +9,49 @@ class Migration(migrations.Migration):
         ('Product', '0002_card_priority'),
     ]
 
+    # Use Python-based conditional DDL for MySQL versions without ADD COLUMN IF NOT EXISTS
+    def _add_color_if_missing(apps, schema_editor):
+        raw_table = 'product_column'
+        table = schema_editor.connection.ops.quote_name(raw_table)
+        with schema_editor.connection.cursor() as cursor:
+            # Ensure table exists (fresh DBs should have it after 0001, but guard anyway)
+            cursor.execute("SHOW TABLES LIKE %s", (raw_table,))
+            table_exists = cursor.fetchone() is not None
+            if not table_exists:
+                return
+            cursor.execute(f"SHOW COLUMNS FROM {table} LIKE %s", ('color',))
+            exists = cursor.fetchone() is not None
+            if not exists:
+                cursor.execute(
+                    f"ALTER TABLE {table} ADD COLUMN `color` varchar(7) NOT NULL DEFAULT '#007ACF'"
+                )
+
+    def _drop_color_if_present(apps, schema_editor):
+        raw_table = 'product_column'
+        table = schema_editor.connection.ops.quote_name(raw_table)
+        with schema_editor.connection.cursor() as cursor:
+            cursor.execute("SHOW TABLES LIKE %s", (raw_table,))
+            table_exists = cursor.fetchone() is not None
+            if not table_exists:
+                return
+            cursor.execute(f"SHOW COLUMNS FROM {table} LIKE %s", ('color',))
+            exists = cursor.fetchone() is not None
+            if exists:
+                cursor.execute(
+                    f"ALTER TABLE {table} DROP COLUMN `color`"
+                )
+
     operations = [
-        migrations.AddField(
-            model_name='column',
-            name='color',
-            field=models.CharField(default='#007ACF', max_length=7),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunPython(_add_color_if_missing, _drop_color_if_present),
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name='column',
+                    name='color',
+                    field=models.CharField(default='#007ACF', max_length=7),
+                ),
+            ],
         ),
     ]

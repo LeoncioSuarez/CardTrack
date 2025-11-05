@@ -1,6 +1,7 @@
 import { fetchJson } from './api';
 
-const API_BASE_URL = 'http://127.0.0.1:8000/api';
+const RAW_BASE = import.meta?.env?.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api';
+const API_BASE_URL = RAW_BASE.replace(/\/$/, '');
 
 const authHeaders = (token) => ({ 'Content-Type': 'application/json', 'Authorization': `Token ${token}` });
 

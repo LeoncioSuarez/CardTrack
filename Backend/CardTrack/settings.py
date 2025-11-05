@@ -10,13 +10,18 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 import os
+import ssl
 from pathlib import Path
 from dotenv import load_dotenv
+from urllib.parse import urlsplit
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 dotenv_path = BASE_DIR / 'credentials.env'
 load_dotenv(dotenv_path, override=True)
+
+# Feature flags / toggles
+USE_CHANNELS = os.getenv('USE_CHANNELS', 'False').lower() in ('1', 'true', 'yes', 'on')
 
 
 def _get_list_from_env(name: str):
@@ -25,6 +30,32 @@ def _get_list_from_env(name: str):
         return None
     # Split by comma and strip whitespace
     return [item.strip() for item in value.split(',') if item.strip()]
+
+
+def _sanitize_origins(origins):
+    """
+    Ensure each origin is scheme://host[:port] with no trailing slash or path,
+    to satisfy django-cors-headers and Django CSRF checks.
+    """
+    sanitized = []
+    for o in origins or []:
+        s = (o or '').strip()
+        if not s:
+            continue
+        # strip trailing slash early (common mistake)
+        s = s.rstrip('/')
+        try:
+            parts = urlsplit(s)
+            if parts.scheme and parts.netloc:
+                base = f"{parts.scheme}://{parts.netloc}"
+            else:
+                # If it's not a full URL, keep as-is after trimming
+                base = s
+        except Exception:
+            base = s
+        if base and base not in sanitized:
+            sanitized.append(base)
+    return sanitized
 
 
 # Quick-start development settings - unsuitable for production
@@ -57,6 +88,9 @@ INSTALLED_APPS = [
     'rest_framework',
     'Product',
 ]
+
+if USE_CHANNELS:
+    INSTALLED_APPS.append('channels')
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -98,11 +132,57 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'CardTrack.wsgi.application'
 
-# ASGI/Channels config removed while reverting WebSocket chat attempt.
+# Channels (ASGI) — enabled only if USE_CHANNELS=True
+if USE_CHANNELS:
+    ASGI_APPLICATION = 'CardTrack.asgi.application'
+
+    # Channel layers: in dev use in-memory; for prod you can set REDIS_URL to enable Redis
+    REDIS_URL = os.getenv('REDIS_URL')
+    if REDIS_URL:
+        CHANNEL_LAYERS = {
+            'default': {
+                'BACKEND': 'channels_redis.core.RedisChannelLayer',
+                'CONFIG': {
+                    'hosts': [REDIS_URL],
+                },
+            },
+        }
+    else:
+        CHANNEL_LAYERS = {
+            'default': {
+                'BACKEND': 'channels.layers.InMemoryChannelLayer',
+            },
+        }
 
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+
+# Database (MySQL by default via env). Supports SSL for providers like Aiven.
+
+# Optional SSL config
+DB_SSL_MODE = os.getenv('DB_SSL_MODE')  # e.g., REQUIRED, VERIFY_CA, VERIFY_IDENTITY
+DB_SSL_CA = os.getenv('DB_SSL_CA')  # path to CA file
+DB_SSL_CA_PEM = os.getenv('DB_SSL_CA_PEM')  # CA contents (PEM) if you prefer storing in env
+
+# If CA content is provided via env, write it to a temp file so MySQL client can use it
+if (not DB_SSL_CA or (DB_SSL_CA and not os.path.exists(DB_SSL_CA))) and DB_SSL_CA_PEM:
+    try:
+        ca_path = BASE_DIR / 'aiven-ca.pem'
+        with open(ca_path, 'w', encoding='utf-8') as f:
+            f.write(DB_SSL_CA_PEM.replace('\\n', '\n'))
+        DB_SSL_CA = str(ca_path)
+    except Exception:
+        # If we can't write the file, we'll proceed without CA path
+        pass
+
+_db_options = {}
+if DB_SSL_CA and os.path.exists(DB_SSL_CA):
+    # Verify server certificate with provided CA
+    _db_options['ssl'] = {'ca': DB_SSL_CA}
+elif (DB_SSL_MODE or '').upper() in ('REQUIRED', 'VERIFY_CA', 'VERIFY_IDENTITY'):
+    # Enable SSL without explicit CA path (may connect but skip strict verification depending on driver)
+    _db_options['ssl'] = {}
 
 DATABASES = {
     'default': {
@@ -112,6 +192,8 @@ DATABASES = {
         'PASSWORD': os.environ.get('DB_PASSWORD'),
         'HOST': os.environ.get('DB_HOST'),
         'PORT': os.environ.get('DB_PORT'),
+        # Add SSL/options only when needed to avoid impacting local dev
+        **({'OPTIONS': _db_options} if _db_options else {}),
     }
 }
 
@@ -163,6 +245,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # CORS configuration (env-driven with safe defaults for dev)
 _env_cors_origins = _get_list_from_env('CORS_ALLOWED_ORIGINS')
+_env_cors_origins = _sanitize_origins(_env_cors_origins) if _env_cors_origins is not None else None
 # In development, allow all origins unless explicitly configured via env.
 if DEBUG and _env_cors_origins is None:
     CORS_ALLOW_ALL_ORIGINS = True
@@ -197,6 +280,7 @@ CORS_ALLOW_METHODS = [
 
 
 _env_csrf_trusted = _get_list_from_env('CSRF_TRUSTED_ORIGINS')
+_env_csrf_trusted = _sanitize_origins(_env_csrf_trusted) if _env_csrf_trusted is not None else None
 CSRF_TRUSTED_ORIGINS = _env_csrf_trusted if _env_csrf_trusted is not None else [
     "http://localhost:5173",
     "http://127.0.0.1:8000",
