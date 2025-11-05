@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
 from .models import User, Board, Column, Card, CarouselImage
-from .models import Release
+from .models import Release, BoardMembership
 
 
 class CardSerializer(serializers.ModelSerializer):
@@ -95,6 +95,67 @@ class CarouselImageSerializer(serializers.ModelSerializer):
         if obj.image:
             return obj.image.url
         return None
+
+
+class UserPublicSerializer(serializers.ModelSerializer):
+    profilepicture_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['id', 'name', 'email', 'profilepicture_url']
+
+    def get_profilepicture_url(self, obj):
+        request = self.context.get('request')
+        try:
+            if obj.profilepicture and request:
+                return request.build_absolute_uri(obj.profilepicture.url)
+        except Exception:
+            pass
+        if request:
+            return request.build_absolute_uri('/media/profilepic/default.jpg')
+        return '/media/profilepic/default.jpg'
+
+
+class BoardMembershipSerializer(serializers.ModelSerializer):
+    user = UserPublicSerializer(read_only=True)
+    user_id = serializers.IntegerField(write_only=True, required=False)
+    email = serializers.EmailField(write_only=True, required=False)
+
+    class Meta:
+        model = BoardMembership
+        fields = ['id', 'board', 'user', 'user_id', 'email', 'role', 'invited_at']
+        read_only_fields = ['id', 'board', 'user', 'invited_at']
+
+    def validate(self, attrs):
+        if not attrs.get('user_id') and not attrs.get('email'):
+            raise serializers.ValidationError('Se requiere user_id o email para invitar.')
+        return attrs
+
+    def create(self, validated_data):
+        from .models import Board, User, BoardMembership
+
+        board = self.context.get('board')
+        if not board:
+            raise serializers.ValidationError('Board no especificado en contexto.')
+
+        user = None
+        if validated_data.get('user_id'):
+            try:
+                user = User.objects.get(id=validated_data['user_id'])
+            except User.DoesNotExist:
+                raise serializers.ValidationError('Usuario no encontrado por user_id.')
+        elif validated_data.get('email'):
+            try:
+                user = User.objects.get(email=validated_data['email'])
+            except User.DoesNotExist:
+                raise serializers.ValidationError('Usuario no encontrado por email.')
+
+        membership, created = BoardMembership.objects.get_or_create(
+            board=board,
+            user=user,
+            defaults={'role': validated_data.get('role', 'viewer')}
+        )
+        return membership
 
 
 class ReleaseSerializer(serializers.ModelSerializer):

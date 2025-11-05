@@ -93,3 +93,25 @@ class CarouselImage(models.Model):
 
     def __str__(self):
         return self.title or f"CarouselImage #{self.pk}"
+
+
+class BoardMembership(models.Model):
+    ROLE_CHOICES = [
+        ('owner', 'Owner'),
+        ('editor', 'Editor'),
+        ('viewer', 'Viewer'),
+    ]
+
+    board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name='memberships')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='memberships')
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='viewer')
+    invited_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Board Membership'
+        verbose_name_plural = 'Board Memberships'
+        indexes = [models.Index(fields=['board', 'user'], name='Product_boa_board_i_deb777_idx')]
+        unique_together = (('board', 'user'),)
+
+    def __str__(self):
+        return f"{self.user.email} on {self.board.title} ({self.role})"
