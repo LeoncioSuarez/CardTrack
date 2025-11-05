@@ -1,4 +1,6 @@
-const API_BASE_URL = 'http://127.0.0.1:8000/api';
+// Read from env (Vite): define VITE_API_BASE_URL in Vercel. Fallback to local dev.
+const RAW_BASE = import.meta?.env?.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api';
+const API_BASE_URL = RAW_BASE.replace(/\/$/, '');
 
 /** Generic fetch wrapper that returns parsed JSON or throws. */
 export async function fetchJson(url, options = {}) {
