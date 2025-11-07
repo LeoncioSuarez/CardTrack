@@ -1,7 +1,8 @@
 import React from 'react';
 import { useAuth } from '../useAuth.js';
 import { useNavigate, useLocation } from 'react-router-dom';
-import logo from '../assets/logo.svg';
+// Use the local asset placed under src/assets/logo.png (no rebuild required by Vite dev server)
+import logo from '../assets/logo.png';
 
 const menuItems = [
     { id: 'inicio', label: 'Inicio', path: '/' },
@@ -22,13 +23,20 @@ const Sidebar = () => {
 
     return (
         <div className="sidebar-menu">
-            {/* If a logo image is available, show it; otherwise fallback to text */}
+            {/* Logo: uses src/assets/logo.png; onError hides the img and reveals fallback text */}
             <div className="sidebar-title">
-                {logo ? (
-                    <img src={logo} alt="CardTrack" className="sidebar-logo" />
-                ) : (
-                    'CardTrack'
-                )}
+                <div className="logo-area">
+                    <img
+                        src={logo}
+                        alt="CardTrack"
+                        className="sidebar-logo"
+                        onError={(e) => {
+                            const parent = e.currentTarget && e.currentTarget.closest('.sidebar-title');
+                            if (parent) parent.classList.add('no-logo');
+                        }}
+                    />
+                </div>
+                <span className="logo-text">CardTrack</span>
             </div>
             <ul className="sidebar-list">
                                 {menuItems.map((item) => {
@@ -47,7 +55,7 @@ const Sidebar = () => {
                 })}
             </ul>
             {/* CLASE CORREGIDA: Usa 'sidebar-logout-button' para la posición inferior */}
-            <button onClick={logout} className="sidebar-logout-button"> 
+            <button onClick={() => { logout(); navigate('/'); }} className="sidebar-logout-button"> 
                 Cerrar sesión
             </button>
         </div>

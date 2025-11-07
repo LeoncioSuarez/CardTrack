@@ -68,7 +68,13 @@ export const AuthProvider = ({ children }) => {
             setIsAuthenticated(true);
         } catch (err) {
             console.error('refreshUser error', err);
-            logout();
+            // Only logout on explicit 401 Unauthorized; for network errors keep the token
+            // and show a non-fatal error so the UI can operate in offline/read-only mode.
+            if (err && err.status === 401) {
+                logout();
+            } else {
+                setError(err.message || 'No se pudo conectar al servidor.');
+            }
         }
     };
 

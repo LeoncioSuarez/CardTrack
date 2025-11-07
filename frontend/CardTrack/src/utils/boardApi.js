@@ -1,162 +1,87 @@
-import { fetchJson } from './api';
+const API_BASE = 'http://127.0.0.1:8000/api';
 
-const RAW_BASE = import.meta?.env?.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api';
-const API_BASE_URL = RAW_BASE.replace(/\/$/, '');
+async function _request(path, opts = {}) {
+	const url = `${API_BASE}${path}`;
+	const res = await fetch(url, opts);
+	const text = await res.text();
+	let data = null;
+	try { data = text ? JSON.parse(text) : null; } catch (_) { data = text; }
+	if (!res.ok) {
+		const err = new Error((data && (data.detail || data.error)) || res.statusText || 'HTTP error');
+		err.status = res.status;
+		err.body = data;
+		throw err;
+	}
+	return data;
+}
 
-const authHeaders = (token) => ({ 'Content-Type': 'application/json', 'Authorization': `Token ${token}` });
+function _authHeaders(token) {
+	return token ? { 'Content-Type': 'application/json', 'Authorization': `Token ${token}` } : { 'Content-Type': 'application/json' };
+}
+
+export async function createBoard(title, token, columns = []) {
+	// create board then create columns sequentially
+	const board = await _request('/boards/', {
+		method: 'POST',
+		headers: _authHeaders(token),
+		body: JSON.stringify({ title, description: '' }),
+	});
+	// create columns
+	if (Array.isArray(columns) && columns.length) {
+		await Promise.all(columns.map((col, idx) => _request(`/boards/${board.id}/columns/`, {
+			method: 'POST',
+			headers: _authHeaders(token),
+			body: JSON.stringify({ title: col, position: idx }),
+		})));
+	}
+	return board;
+}
 
 export async function getBoard(boardId, token) {
-  return fetchJson(`${API_BASE_URL}/boards/${boardId}/`, { headers: authHeaders(token) });
+	return _request(`/boards/${boardId}/`, { headers: _authHeaders(token) });
 }
 
 export async function getColumns(boardId, token) {
-  return fetchJson(`${API_BASE_URL}/boards/${boardId}/columns/`, { headers: authHeaders(token) });
-}
-
-export async function createColumn(boardId, token, title, color, position) {
-  const res = await fetch(`${API_BASE_URL}/boards/${boardId}/columns/`, {
-    method: 'POST',
-    headers: authHeaders(token),
-    body: JSON.stringify({ title, position, color }),
-  });
-  if (!res.ok) throw new Error('No se pudo crear la columna');
-  return res.json();
-}
-
-export async function createBoard(boardName, token, columns = []) {
-  const res = await fetch(`${API_BASE_URL}/boards/`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Token ${token}` },
-    body: JSON.stringify({ title: boardName, description: '' }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || 'No se pudo crear el tablero');
-  }
-  const board = await res.json();
-  // create columns
-  const colRequests = columns.map((title, index) =>
-    createColumn(board.id, token, title, '#007ACF', index)
-  );
-  await Promise.all(colRequests);
-  return board;
-}
-
-export async function updateColumn(boardId, token, columnId, payload) {
-  const res = await fetch(`${API_BASE_URL}/boards/${boardId}/columns/${columnId}/`, {
-    method: 'PATCH',
-    headers: authHeaders(token),
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) throw new Error('No se pudo actualizar la columna');
-  return res.json();
-}
-
-export async function deleteColumn(boardId, token, columnId) {
-  const res = await fetch(`${API_BASE_URL}/boards/${boardId}/columns/${columnId}/`, {
-    method: 'DELETE',
-    headers: authHeaders(token),
-  });
-  if (!res.ok && res.status !== 204) throw new Error('No se pudo eliminar la columna');
-  return true;
-}
-
-export async function createCard(boardId, token, columnId, title, description, position) {
-  const res = await fetch(`${API_BASE_URL}/boards/${boardId}/columns/${columnId}/cards/`, {
-    method: 'POST',
-    headers: authHeaders(token),
-    body: JSON.stringify({ title, description, position }),
-  });
-  if (!res.ok) throw new Error('No se pudo crear la tarea');
-  return res.json();
-}
-
-export async function updateCard(boardId, token, columnId, cardId, payload) {
-  const res = await fetch(`${API_BASE_URL}/boards/${boardId}/columns/${columnId}/cards/${cardId}/`, {
-    method: 'PATCH',
-    headers: authHeaders(token),
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) throw new Error('No se pudo actualizar la tarea');
-  return res.json();
-}
-
-export async function deleteCard(boardId, token, columnId, cardId) {
-  const res = await fetch(`${API_BASE_URL}/boards/${boardId}/columns/${columnId}/cards/${cardId}/`, {
-    method: 'DELETE',
-    headers: authHeaders(token),
-  });
-  if (!res.ok && res.status !== 204) throw new Error('No se pudo eliminar la tarea');
-  return true;
-}
-
-export async function deleteBoard(boardId, token) {
-  const res = await fetch(`${API_BASE_URL}/boards/${boardId}/`, {
-    method: 'DELETE',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Token ${token}` },
-  });
-  if (!res.ok && res.status !== 204) throw new Error('No se pudo eliminar el tablero');
-  return true;
+	return _request(`/boards/${boardId}/columns/`, { headers: _authHeaders(token) });
 }
 
 export async function getMembers(boardId, token) {
-  const res = await fetch(`${API_BASE_URL}/boards/${boardId}/members/`, {
-    method: 'GET',
-    headers: authHeaders(token),
-  });
-  if (!res.ok) throw new Error('No se pudo obtener los miembros');
-  return res.json();
+	const members = await _request(`/boards/${boardId}/members/`, { headers: _authHeaders(token) });
+	// If API returns only user IDs in 'user', fetch user details to display name/email/profile
+	const augmented = await Promise.all(members.map(async (m) => {
+		try {
+			if (m && (typeof m.user === 'number' || (typeof m.user === 'string' && m.user.match(/^\d+$/)))) {
+				const uid = Number(m.user);
+				const user = await _request(`/users/${uid}/`, { headers: _authHeaders(token) });
+				return {
+					...m,
+					user_name: user.name || user.id || '',
+					user_email: user.email || '',
+					user_profilepicture: user.profilepicture || user.profile_picture || null,
+				};
+			}
+		} catch (err) {
+			// ignore per-user fetch errors and return original membership
+		}
+		return m;
+	}));
+	return augmented;
 }
 
 export async function inviteByEmail(boardId, token, email, role = 'viewer') {
-  const res = await fetch(`${API_BASE_URL}/boards/${boardId}/members/`, {
-    method: 'POST',
-    headers: authHeaders(token),
-    body: JSON.stringify({ email, role }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || (err.email ? err.email.join(', ') : 'No se pudo invitar al usuario'));
-  }
-  return res.json();
+	return _request(`/boards/${boardId}/invite/`, {
+		method: 'POST',
+		headers: _authHeaders(token),
+		body: JSON.stringify({ email, role }),
+	});
 }
 
 export async function updateMemberRole(boardId, memberId, token, role) {
-  const res = await fetch(`${API_BASE_URL}/boards/${boardId}/members/${memberId}/`, {
-    method: 'PATCH',
-    headers: authHeaders(token),
-    body: JSON.stringify({ role }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || 'No se pudo actualizar el rol');
-  }
-  return res.json();
+	return _request(`/boards/${boardId}/members/${memberId}/`, {
+		method: 'PATCH',
+		headers: _authHeaders(token),
+		body: JSON.stringify({ role }),
+	});
 }
 
-export async function leaveBoard(boardId, token) {
-  const res = await fetch(`${API_BASE_URL}/boards/${boardId}/leave/`, {
-    method: 'POST',
-    headers: authHeaders(token),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || 'No se pudo abandonar el tablero');
-  }
-  return true;
-}
-
-export default {
-  getBoard,
-  getColumns,
-  createColumn,
-  updateColumn,
-  deleteColumn,
-  createCard,
-  updateCard,
-  deleteCard,
-  getMembers,
-  inviteByEmail,
-  updateMemberRole,
-  leaveBoard,
-};
+export default { createBoard, getBoard, getColumns, getMembers, inviteByEmail, updateMemberRole };

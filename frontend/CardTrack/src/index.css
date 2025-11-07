@@ -172,8 +172,68 @@ button { font: inherit; cursor: pointer; border-radius: 6px; border: none; paddi
 .muted { color: var(--color-secondary-text); }
 
 /* Sidebar */
-.sidebar-title { font-weight:700; color:white; padding: 12px 16px; background: var(--color-accent-primary); display:flex; align-items:center; }
-.sidebar-logo { display:block; width:140px; height:auto; }
+.sidebar-title {
+  font-weight:700;
+  color:white;
+  padding: 8px 14px; /* less vertical padding so logo sits higher */
+  background: var(--color-accent-primary);
+  /* Use grid: top area is the square logo area, bottom row is the optional text */
+  display: grid;
+  grid-template-rows: auto auto;
+  align-items: start; /* place content at the top */
+  justify-items: center;
+  height: 120px; /* reduce header height so logo is closer to the top edge */
+  box-sizing: border-box;
+  overflow: visible; /* allow the logo to overlap outside the header */
+}
+
+.logo-area {
+  width: 90%;      /* bigger square area */
+  max-width: 220px; /* allow larger logo on wide screens */
+  aspect-ratio: 1 / 1; /* keep a square area */
+  display: grid;
+  place-items: center; /* center the image inside the square */
+  background: transparent; /* keep background same as header */
+  align-self: start; /* stick the area to the top of the header */
+  margin-top: 0;
+  position: relative;
+
+}
+
+.sidebar-logo {
+  width: 95%; /* occupy most of the square area */
+  max-width: 200px;
+  height: auto;
+  display: block;
+  position: relative;
+  z-index: 2;
+  transform: translateY(-40%); /* lift the logo upward to sit above the separator */
+  padding-bottom: 0; /* remove extra padding that inflated the hitbox */
+}
+
+/* Make the decorative logo not capture pointer events so it doesn't block the menu */
+.sidebar-title, .logo-area, .sidebar-logo {
+  pointer-events: none;
+}
+
+/* Ensure menu items and logout button are above and clickable */
+.sidebar-list, .sidebar-logout-button, .menu-item {
+  position: relative;
+  z-index: 3;
+  pointer-events: auto;
+}
+
+.sidebar-title .logo-text {
+  display: none;
+  font-weight:700;
+  margin-top:6px;
+  color: #fff;
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+
+.sidebar-title.no-logo .logo-text { display: block; }
+.sidebar-title.no-logo .logo-area { display: none; }
 .sidebar-list { list-style:none; padding:0; margin:0; }
 
 /* Profile */
@@ -250,6 +310,9 @@ button { font: inherit; cursor: pointer; border-radius: 6px; border: none; paddi
 .info-line { display:flex; justify-content:space-between; align-items:center; }
 .loading-message, .error-message { text-align:center; padding:12px; }
 .error-message { color: var(--color-status-danger); }
+
+/* Success message styling for inline feedback */
+.success-message { text-align: center; padding: 12px; color: var(--color-success); background: rgba(5,150,105,0.06); border-radius: 6px; margin-bottom: 12px; }
 
 /* Responsive tweaks */
 @media (max-width: 900px) {
@@ -825,7 +888,7 @@ button:disabled, .main-button:disabled {
   text-align: center;
   font-weight: 700;
   line-height: 1;
-.}
+}
 .column-header h3 {
   flex: 1 1 auto;
   margin: 0;

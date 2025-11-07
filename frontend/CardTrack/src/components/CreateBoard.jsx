@@ -1,17 +1,16 @@
 import React, { useState } from 'react';
-import { useContext } from 'react';
-import { AuthContext } from '../context/AuthContext.jsx';
-import { createBoard as apiCreateBoard } from '../utils/boardApi';
+import { useAuth } from '../useAuth.js'; 
 import { useNavigate } from 'react-router-dom'; 
 
-export const CreateBoard = () => {
-    const { token } = useContext(AuthContext);
+const CreateBoard = () => {
+    const { createBoard, isAuthenticated } = useAuth(); 
     const navigate = useNavigate();
 
     const [boardName, setBoardName] = useState('');
     const [columns, setColumns] = useState(['Por Hacer', 'En Progreso', 'Completado']); 
     const [newColumnName, setNewColumnName] = useState('');
     const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
     const handleAddColumn = () => {
@@ -37,24 +36,35 @@ export const CreateBoard = () => {
             return;
         }
 
-        try {
-            await apiCreateBoard(boardName.trim(), token, columns);
-            setIsLoading(false);
-            alert(`Tablero "${boardName}" y ${columns.length} columnas creadas exitosamente!`);
-            navigate('/boards');
-            return;
-        } catch (err) {
-            setError(err.message || 'No se pudo crear el tablero.');
-            setIsLoading(false);
-            return;
+        const result = await createBoard(boardName.trim(), columns);
+        setIsLoading(false);
+
+        if (result.success) {
+            // show inline success message then navigate after short delay
+            setSuccess(`Tablero "${boardName}" y ${columns.length} columnas creadas exitosamente!`);
+            setTimeout(() => navigate('/boards'), 900);
+        } else {
+            setError(result.error || 'No se pudo crear el tablero.');
         }
-        
     };
+
+    if (!isAuthenticated) {
+        return (
+            <div className="dashboard-section">
+                <h1 className="board-title">Crear Nuevo Tablero Kanban</h1>
+                <p className="error-message">No estás autenticado. Inicia sesión para crear tableros.</p>
+                <div style={{ marginTop: 12 }}>
+                    <button className="main-button" onClick={() => navigate('/')}>Ir a iniciar sesión</button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="dashboard-section">
             <h1 className="board-title">Crear Nuevo Tablero Kanban</h1>
             {error && <p className="error-text error-message">{error}</p>}
+            {success && <p className="success-message">{success}</p>}
             <form className="main-card form-container" onSubmit={handleSubmit}>
                 <label className="form-label">Nombre del Tablero</label>
                 <input

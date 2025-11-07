@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useContext } from 'react';
-import { AuthContext } from '../context/AuthContext.jsx';
-import { fetchCarouselImages } from '../utils/api';
+import { useAuth } from '../useAuth.js';
 import { useNavigate } from 'react-router-dom';
 
 const API_GALLERY_URL = 'http://127.0.0.1:8000/api/carousel-images/';
 
 const LoginRegister = () => {
-    const { login, register, isAuthenticated } = useContext(AuthContext);
+    const { login, register, isAuthenticated } = useAuth();
     const navigate = useNavigate();
 
     const [isLogin, setIsLogin] = useState(true);
@@ -22,18 +20,31 @@ const LoginRegister = () => {
 
     useEffect(() => {
         if (isAuthenticated) {
-            navigate('/dashboard', { replace: true });
+            navigate('/', { replace: true });
         }
     }, [isAuthenticated, navigate]);
 
     useEffect(() => {
-        let mounted = true;
-        (async () => {
-            const imgs = await fetchCarouselImages();
-            if (!mounted) return;
-            setImages(imgs);
-        })();
-        return () => { mounted = false; };
+        const fetchImages = async () => {
+            try {
+                const response = await fetch(API_GALLERY_URL);
+                if (response.ok) {
+                    let data = await response.json();
+                    if (Array.isArray(data)) {
+                        data = data
+                            .filter(item => item.is_active)
+                            .sort((a, b) => (a.position || 0) - (b.position || 0));
+                    }
+                    setImages(data);
+                } else {
+                    console.error("No se pudieron cargar las imágenes del carrusel.");
+                }
+            } catch (error) {
+                console.error("Error al conectar con la API de galería:", error);
+            }
+        };
+
+        fetchImages();
     }, []);
 
     useEffect(() => {

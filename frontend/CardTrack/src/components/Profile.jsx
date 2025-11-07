@@ -1,150 +1,59 @@
-import React, { useState, useRef } from 'react';
-import { useContext } from 'react';
-import { AuthContext } from '../context/AuthContext.jsx';
-import { updateUser as updateUserApi } from '../utils/profileApi';
-import ProfileView from './profile/ProfileView.jsx';
-import ProfileEdit from './profile/ProfileEdit.jsx';
+import React from 'react';
+import { useAuth } from '../useAuth.js';
+import { useNavigate } from 'react-router-dom';
 
-const API_BASE_URL = 'http://127.0.0.1:8000/api';
-const DEV_LOG_FORMDATA = window && window.__DEV_LOG_FORMDATA === true;
-
-export const Profile = () => {
-    const { user, token, refreshUser } = useContext(AuthContext);
-
-    // hooks must be at top level
-    const [editing, setEditing] = useState(false);
-    const [name, setName] = useState(user ? user.name : '');
-    const MAX_ABOUT = 255;
-    const [aboutme, setAboutme] = useState(user ? user.aboutme || '' : '');
-    const [aboutCharsLeft, setAboutCharsLeft] = useState(MAX_ABOUT - (user && user.aboutme ? user.aboutme.length : 0));
-    const [errorMsg, setErrorMsg] = useState(null);
-    const backendBase = API_BASE_URL.replace(/\/api\/?$/, '');
-    const mediaBase = backendBase + '/media/';
-    const defaultProfile = mediaBase + 'profilepic/default.jpg';
-
-    const normalizeImage = (img) => {
-        if (!img) return defaultProfile;
-        if (typeof img !== 'string') return defaultProfile;
-        if (img.startsWith('http://') || img.startsWith('https://')) return img;
-        // if server already returned a path containing 'media/', avoid duplicating
-        const cleaned = img.replace(/^\/+/, '');
-        if (cleaned.startsWith('media/')) return backendBase + '/' + cleaned;
-        return mediaBase + cleaned;
-    };
-
-    const [previewSrc, setPreviewSrc] = useState(user ? normalizeImage(user.profilepicture) : defaultProfile);
-    const [fileToUpload, setFileToUpload] = useState(null);
-    const inputFileRef = useRef(null);
-    const [saving, setSaving] = useState(false);
+const Profile = () => {
+    const { user, token, refreshUser } = useAuth();
+    const navigate = useNavigate();
 
     if (!user) {
-        return <div className="profile-container profile-loading">Cargando perfil...</div>;
+        // If we have a token, allow retrying the profile fetch; otherwise prompt to login
+        if (token) {
+            return (
+                <div className="profile-container" style={{ color: 'var(--color-primary-text)' }}>
+                    <h1 className="profile-title">Mi Perfil</h1>
+                    <div className="main-card profile-info-box">
+                        <p className="loading-message">Cargando perfil... Si tarda mucho, pulsa "Reintentar".</p>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <button className="main-button main-button--small" onClick={() => refreshUser(token)}>Reintentar</button>
+                            <button className="secondary-button" onClick={() => navigate('/')}>Ir a inicio</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+        return (
+            <div className="profile-container" style={{ color: 'var(--color-primary-text)' }}>
+                <h1 className="profile-title">Mi Perfil</h1>
+                <div className="main-card profile-info-box">
+                    <p className="error-message">No estás autenticado. Inicia sesión para ver tu perfil.</p>
+                    <div style={{ marginTop: 12 }}>
+                        <button className="main-button" onClick={() => navigate('/')}>Ir a iniciar sesión</button>
+                    </div>
+                </div>
+            </div>
+        );
     }
 
-    const enterEdit = () => {
-        setName(user.name || '');
-        setAboutme(user.aboutme || '');
-        setPreviewSrc(normalizeImage(user.profilepicture));
-        setEditing(true);
-    };
-
-    const cancelEdit = () => {
-        setEditing(false);
-        setFileToUpload(null);
-        setPreviewSrc(normalizeImage(user.profilepicture));
-    };
-
-    const onPhotoClick = () => {
-        if (!editing) return;
-        inputFileRef.current?.click();
-    };
-
-    const onFileChange = (e) => {
-        const f = e.target.files && e.target.files[0];
-        if (!f) return;
-        const reader = new FileReader();
-        reader.onload = () => {
-            setPreviewSrc(reader.result);
-        };
-        reader.readAsDataURL(f);
-        setFileToUpload(f);
-    };
-    
-        const saveChanges = async () => {
-            setSaving(true);
-            try {
-                const fd = new FormData();
-                fd.append('name', name);
-                fd.append('aboutme', aboutme);
-                // Prefer the actual input's file in case state wasn't updated
-                const inputFile = inputFileRef.current && inputFileRef.current.files && inputFileRef.current.files[0];
-                const file = inputFile || fileToUpload;
-                if (file) {
-                    // append only once to avoid duplicate uploads
-                    fd.append('profilepicture', file);
-                }
-                if (DEV_LOG_FORMDATA && file) console.debug('Uploading file:', file.name, file.size, file.type);
-                if (DEV_LOG_FORMDATA) {
-                    try {
-                        for (const pair of fd.entries()) {
-                            console.debug('FormData entry:', pair[0], pair[1]);
-                        }
-                    } catch (err) { console.debug('formdata debug failed', err); }
-                }
-                    // Note: we intentionally append the file only once (key 'profilepicture') to avoid duplicate files on the server.
-                    try {
-                        await updateUserApi(user.id, token, fd);
-                        // success: refresh user and update preview with the fresh profilepicture
-                        const refreshed = await refreshUser();
-                        if (refreshed) {
-                            setPreviewSrc(normalizeImage(refreshed.profilepicture));
-                        }
-                        setEditing(false);
-                        setFileToUpload(null);
-                        setErrorMsg(null);
-                    } catch (err) {
-                        console.error('Failed to save profile', err);
-                        const msg = (err && err.message) ? err.message : 'No se pudo guardar el perfil.';
-                        setErrorMsg(msg);
-                    }
-            } catch (err) {
-                console.error(err);
-                setErrorMsg('Error al guardar. Revisa la consola.');
-            } finally {
-                setSaving(false);
-            }
-        };
-    
     return (
         <div className="profile-container">
             <h1 className="profile-title">Mi Perfil</h1>
-            <div className="main-card profile-info-box profile-info-box--flex">
-                    <div className="profile-left">
-                    <input ref={inputFileRef} name="profilepicture" type="file" accept="image/*" className="hidden-input" onChange={onFileChange} />
-                    <ProfileView user={user} previewSrc={previewSrc} onPhotoClick={onPhotoClick} enterEdit={enterEdit} side="left" defaultProfile={defaultProfile} />
+            <div className="main-card profile-info-box">
+                <div className="profile-info-row">
+                    <span className="profile-label">Nombre de Usuario:</span>
+                    <span className="profile-value">{user.name}</span>
                 </div>
-
-                <div className="profile-right">
-                    {!editing ? (
-                        <ProfileView user={user} previewSrc={previewSrc} onPhotoClick={onPhotoClick} enterEdit={enterEdit} side="right" defaultProfile={defaultProfile} />
-                    ) : (
-                        <div>
-                            {errorMsg && (
-                                <div className="error-message">{errorMsg}</div>
-                            )}
-                            <ProfileEdit
-                                name={name}
-                                setName={setName}
-                                aboutme={aboutme}
-                                setAboutme={(v) => { setAboutme(v); setAboutCharsLeft(MAX_ABOUT - (v ? v.length : 0)); }}
-                                aboutCharsLeft={aboutCharsLeft}
-                                MAX_ABOUT={MAX_ABOUT}
-                                saveChanges={saveChanges}
-                                cancelEdit={cancelEdit}
-                                saving={saving}
-                            />
-                        </div>
-                    )}
+                <div className="profile-info-row">
+                    <span className="profile-label">Correo Registrado:</span>
+                    <span className="profile-value">{user.email}</span>
+                </div>
+                <div className="profile-info-row">
+                    <span className="profile-label">Fecha de Registro:</span>
+                    <span className="profile-value">{user.registration_date ? new Date(user.registration_date).toLocaleString() : (user.registrationDate ? new Date(user.registrationDate).toLocaleString() : 'No disponible')}</span>
+                </div>
+                <div className="profile-info-row">
+                    <span className="profile-label">Último Inicio de Sesión:</span>
+                    <span className="profile-value">{user.last_login ? new Date(user.last_login).toLocaleString() : (user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'No disponible')}</span>
                 </div>
             </div>
         </div>

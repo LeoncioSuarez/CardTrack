@@ -37,6 +37,7 @@ export const BoardEditor = () => {
 
   const [showUsersModal, setShowUsersModal] = useState(false);
   const [members, setMembers] = useState([]);
+  const [membersError, setMembersError] = useState(null);
   const [currentUserRole, setCurrentUserRole] = useState(null);
   const [editingRoleMemberId, setEditingRoleMemberId] = useState(null);
   const [editingRoleValue, setEditingRoleValue] = useState(null);
@@ -551,7 +552,7 @@ export const BoardEditor = () => {
           <div className="modal-content">
             <div className="modal-title">Usuarios autorizados</div>
             <div className="main-card modal-main-card">
-              <div className="mb-8">
+                <div className="mb-8">
                 <input
                   type="email"
                   placeholder="Correo a invitar"
@@ -563,22 +564,24 @@ export const BoardEditor = () => {
                   className="main-button main-button--small"
                   disabled={inviteLoading || !inviteEmail}
                   onClick={async () => {
-                    if (!inviteEmail) return;
-                    setInviteLoading(true);
-                    try {
-                      await boardApi.inviteByEmail(boardId, token, inviteEmail, 'viewer');
-                      // reload members
-                      const m = await boardApi.getMembers(boardId, token);
-                      setMembers(m);
-                      setInviteEmail('');
-                    } catch (err) {
-                      alert(err.message || 'Error al invitar');
-                    } finally {
-                      setInviteLoading(false);
-                    }
+                      if (!inviteEmail) return;
+                      setMembersError(null);
+                      setInviteLoading(true);
+                      try {
+                        await boardApi.inviteByEmail(boardId, token, inviteEmail, 'viewer');
+                        // reload members
+                        const m = await boardApi.getMembers(boardId, token);
+                        setMembers(m);
+                        setInviteEmail('');
+                      } catch (err) {
+                        setMembersError(err.message || 'Error al invitar');
+                      } finally {
+                        setInviteLoading(false);
+                      }
                   }}
                 >Invitar</button>
               </div>
+                {membersError && <p className="error-message" role="alert">{membersError}</p>}
 
               <ul className="members-list">
                 {members.map((m) => (
@@ -596,7 +599,7 @@ export const BoardEditor = () => {
                           <select value={editingRoleValue} onChange={async (e) => {
                             const newRole = e.target.value;
                             if (newRole === 'owner' && currentUserRole !== 'owner') {
-                              alert('No tienes permiso para asignar owner');
+                              setMembersError('No tienes permiso para asignar owner');
                               return;
                             }
                             try {
@@ -606,7 +609,7 @@ export const BoardEditor = () => {
                               setEditingRoleMemberId(null);
                               setEditingRoleValue(null);
                             } catch (err) {
-                              alert(err.message || 'No se pudo cambiar el rol');
+                              setMembersError(err.message || 'No se pudo cambiar el rol');
                             }
                           }} onBlur={() => { setEditingRoleMemberId(null); setEditingRoleValue(null); }}>
                             <option value="viewer">Visitante</option>
