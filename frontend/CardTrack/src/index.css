@@ -259,6 +259,52 @@ button { font: inherit; cursor: pointer; border-radius: 6px; border: none; paddi
 
 /* End of centralized stylesheet */
 
+/* Development panel styles */
+.dev-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 52vh;
+  overflow: auto;
+  padding: 6px;
+}
+.dev-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--color-card-background);
+  border: 1px solid var(--color-border);
+}
+.dev-menu-button {
+  min-width: 40px;
+  height: 36px;
+  padding: 6px 8px;
+  border-radius: 6px;
+}
+.dev-dropdown {
+  position: absolute;
+  right: 0;
+  top: 40px;
+  background: var(--color-card-background);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card);
+  border-radius: 8px;
+  padding: 6px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dev-inline-form { display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+.dev-inline-form .form-input { width: 320px; max-width: 100%; }
+.inline-confirm { display:flex; gap:8px; align-items:center; margin-left: 12px; }
+
+/* Scrollbar tweaks for dev list */
+.dev-list::-webkit-scrollbar { width: 10px; }
+.dev-list::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.08); border-radius: 6px; }
+
 /* Prevent global vertical scrollbar on the page. Internal containers (columns, forms) should handle their own scrolling. */
 html, body, #root {
   height: 100%;

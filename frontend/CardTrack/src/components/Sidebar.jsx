@@ -1,9 +1,9 @@
 import React from 'react';
-import { useContext } from 'react';
-// Use a fallback SVG from assets until you copy your real logo.png into src/assets/
-import logo from '../assets/logo.png';
-import { AuthContext } from '../context/AuthContext.jsx';
+import { useAuth } from '../useAuth.js';
 import { useNavigate, useLocation } from 'react-router-dom';
+// development swich
+const DEVELOPMENT_SWITCH = true; //Change the value to true or false to allow development
+
 
 const menuItems = [
     { id: 'inicio', label: 'Inicio', path: '/' },
@@ -13,8 +13,12 @@ const menuItems = [
     { id: 'settings', label: 'Opciones y Seguridad', path: '/settings' },
 ];
 
+if (DEVELOPMENT_SWITCH) {
+    menuItems.splice(1, 0, { id: 'development', label: 'Development', path: '/development' });
+}
+
 export const Sidebar = () => {
-    const { logout } = useContext(AuthContext);
+    const { logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -24,19 +28,7 @@ export const Sidebar = () => {
 
     return (
         <div className="sidebar-menu">
-            <div className="sidebar-title">
-                <div className="logo-area">
-                    <img
-                        src={logo}
-                        alt="CardTrack"
-                        className="sidebar-logo"
-                        onError={(e) => {
-                            const parent = e.currentTarget && e.currentTarget.closest('.sidebar-title');
-                            if (parent) parent.classList.add('no-logo');
-                        }}
-                    />
-                </div>
-            </div>
+            <div className="sidebar-title">CardTrack</div>
             <ul className="sidebar-list">
                                 {menuItems.map((item) => {
                                         const isActive = item.path === '/boards'
