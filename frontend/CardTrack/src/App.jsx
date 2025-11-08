@@ -1,6 +1,14 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { LoginRegister, Dashboard, BoardEditor, BoardsPreview, CreateBoard, Profile, Settings, Inicio } from './components';
+import LoginRegister from './components/LoginRegister';
+import Dashboard from './components/Dashboard';
+import BoardEditor from './components/BoardEditor';
+import BoardsPreview from './components/BoardsPreview';
+import CreateBoard from './components/CreateBoard';
+import Profile from './components/Profile';
+import Settings from './components/Settings';
+import Inicio from './components/Inicio';
+import Development from './components/Development';
 import { AuthProvider, AuthContext } from './context/AuthContext.jsx';
 import { useContext } from 'react';
 
@@ -13,6 +21,7 @@ const AuthenticatedRoutes = () => {
             <Route path="/profile" element={<Dashboard viewComponent={<Profile />} />} />
             <Route path="/settings" element={<Dashboard viewComponent={<Settings />} />} />
             <Route path="/boards/:boardId" element={<Dashboard viewComponent={<BoardEditor />} />} />
+            <Route path="/development" element={<Dashboard viewComponent={<Development />} />} />
         </Routes>
     );
 };
