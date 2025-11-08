@@ -1,5 +1,7 @@
 import React from 'react';
 import { useContext } from 'react';
+// Use a fallback SVG from assets until you copy your real logo.png into src/assets/
+import logo from '../assets/logo.png';
 import { AuthContext } from '../context/AuthContext.jsx';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -22,7 +24,19 @@ export const Sidebar = () => {
 
     return (
         <div className="sidebar-menu">
-            <div className="sidebar-title">CardTrack</div>
+            <div className="sidebar-title">
+                <div className="logo-area">
+                    <img
+                        src={logo}
+                        alt="CardTrack"
+                        className="sidebar-logo"
+                        onError={(e) => {
+                            const parent = e.currentTarget && e.currentTarget.closest('.sidebar-title');
+                            if (parent) parent.classList.add('no-logo');
+                        }}
+                    />
+                </div>
+            </div>
             <ul className="sidebar-list">
                                 {menuItems.map((item) => {
                                         const isActive = item.path === '/boards'
