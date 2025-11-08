@@ -47,10 +47,44 @@ class BoardSerializer(serializers.ModelSerializer):
 
 
 class BoardMembershipSerializer(serializers.ModelSerializer):
+    # Expose convenient read-only user fields so frontend can show name/email/avatar
+    user_name = serializers.SerializerMethodField(read_only=True)
+    user_email = serializers.SerializerMethodField(read_only=True)
+    user_profilepicture = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = BoardMembership
-        fields = ['id', 'board', 'user', 'role', 'invited_at']
-        read_only_fields = ['id', 'board', 'invited_at']
+        # include derived user fields that the frontend expects (user_name, user_email, user_profilepicture)
+        fields = ['id', 'board', 'user', 'role', 'invited_at', 'user_name', 'user_email', 'user_profilepicture']
+        read_only_fields = ['id', 'board', 'invited_at', 'user_name', 'user_email', 'user_profilepicture']
+        extra_kwargs = {
+            # accept creation by email: allow 'user' to be omitted from the incoming payload
+            'user': {'required': False}
+        }
+
+    def get_user_name(self, obj):
+        try:
+            return obj.user.name
+        except Exception:
+            return None
+
+    def get_user_email(self, obj):
+        try:
+            return obj.user.email
+        except Exception:
+            return None
+
+    def get_user_profilepicture(self, obj):
+        # Return an absolute URL when request is present, otherwise the stored path
+        try:
+            request = self.context.get('request')
+            if obj.user.profilepicture and request:
+                return request.build_absolute_uri(obj.user.profilepicture.url)
+            if obj.user.profilepicture:
+                return getattr(obj.user.profilepicture, 'url', None) or obj.user.profilepicture
+        except Exception:
+            pass
+        return None
 
 
 class UserSerializer(serializers.ModelSerializer):
