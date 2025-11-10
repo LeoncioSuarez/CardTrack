@@ -305,6 +305,8 @@ button { font: inherit; cursor: pointer; border-radius: 6px; border: none; paddi
 .dev-list::-webkit-scrollbar { width: 10px; }
 .dev-list::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.08); border-radius: 6px; }
 
+/* Loading placeholders removed to keep UI uninterrupted */
+
 /* Prevent global vertical scrollbar on the page. Internal containers (columns, forms) should handle their own scrolling. */
 html, body, #root {
   height: 100%;
