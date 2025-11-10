@@ -254,6 +254,9 @@ else:
     CORS_ALLOWED_ORIGINS = _env_cors_origins if _env_cors_origins is not None else [
         "http://localhost:5173",
         "http://127.0.0.1:8000",
+        # Allow the deployed frontend (Vercel) and backend host by default when not configured
+        "https://card-track-plum.vercel.app",
+        "https://cardtrack-backend.onrender.com",
     ]
 
 # Allow credentials and typical headers/methods for dev
@@ -284,6 +287,9 @@ _env_csrf_trusted = _sanitize_origins(_env_csrf_trusted) if _env_csrf_trusted is
 CSRF_TRUSTED_ORIGINS = _env_csrf_trusted if _env_csrf_trusted is not None else [
     "http://localhost:5173",
     "http://127.0.0.1:8000",
+    # Trusted origins for production frontend/backends
+    "https://card-track-plum.vercel.app",
+    "https://cardtrack-backend.onrender.com",
 ]
 
 

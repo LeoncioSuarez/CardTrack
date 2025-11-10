@@ -90,10 +90,12 @@ class BoardMembershipSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     # password is write-only and optional for updates
     password = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    # Provide an absolute URL for the frontend to display the profile image safely
+    profilepicture_url = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = User
-        fields = ["profilepicture","id", "name", "email", "password", "aboutme", "registration_date", "last_login"]
+        fields = ["profilepicture","profilepicture_url","id", "name", "email", "password", "aboutme", "registration_date", "last_login"]
         extra_kwargs = {
             "password": {"write_only": True}
         }
@@ -133,6 +135,23 @@ class UserSerializer(serializers.ModelSerializer):
                 validated_data['profilepicture'] = pf
 
         return super().update(instance, validated_data)
+
+    def get_profilepicture_url(self, obj):
+        try:
+            request = self.context.get('request')
+            if obj.profilepicture and request:
+                return request.build_absolute_uri(obj.profilepicture.url)
+            if obj.profilepicture:
+                return getattr(obj.profilepicture, 'url', None) or obj.profilepicture
+        except Exception:
+            pass
+        # Fallback to a default media path (the frontend should request an absolute URL via API where possible)
+        try:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri('/media/profilepic/default.jpg')
+        except Exception:
+            return '/media/profilepic/default.jpg'
 
 
 class CarouselImageSerializer(serializers.ModelSerializer):
