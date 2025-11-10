@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useContext, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext.jsx';
+import useBoardSocket from '../hooks/useBoardSocket';
 import * as boardApi from '../utils/boardApi';
 import Column from './board/Column';
 import ColumnHeader from './board/ColumnHeader';
@@ -31,6 +32,9 @@ export const BoardEditor = () => {
 
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [taskForm, setTaskForm] = useState({ columnId: '', title: '', description: '', type: 'description', checklist: [] });
+
+  // Remote changes counter (non-intrusive): if >0 show small badge allowing user to apply changes
+  const [remoteChanges, setRemoteChanges] = useState(0);
 
   const [showAddColumnModal, setShowAddColumnModal] = useState(false);
   const [newColumn, setNewColumn] = useState({ title: '', color: '#007ACF' });
@@ -126,6 +130,28 @@ export const BoardEditor = () => {
       })();
     }
   }, [boardId, token, loadBoardAndColumns, showUsersModal, user]);
+
+  // Subscribe to board websocket events and react non-intrusively
+  useBoardSocket(boardId, {
+    token,
+    onMessage: (payload) => {
+      try {
+        const ev = payload && payload.event;
+        const data = payload && payload.data;
+        if (!ev) return;
+        // If user is editing the same card, don't overwrite - show badge
+        const editingCardId = taskForm && taskForm.editingCardId;
+        if (showTaskModal && editingCardId && data && Number(editingCardId) === Number(data.id)) {
+          setRemoteChanges((c) => c + 1);
+          return;
+        }
+        // otherwise reload board data (granular update could be implemented later)
+        loadBoardAndColumns();
+      } catch (e) {
+        console.warn('WS handler error', e);
+      }
+    }
+  });
 
   // helper to normalize member image paths
   const backendBase = API_BASE_URL.replace(/\/api\/?$/, '');
@@ -457,9 +483,9 @@ export const BoardEditor = () => {
     navigate(location.pathname, { replace: true });
   };
 
-  if (loading) {
-    return <div className="dashboard-content-message">Cargando tablero...</div>;
-  }
+  // Instead of returning a full-page loading placeholder which breaks immersion,
+  // render the board shell and show lightweight inline loaders/skeletons.
+  const isLoading = loading;
 
   if (error) {
     return <div className="dashboard-content-message error">Error: {error}</div>;
@@ -468,8 +494,17 @@ export const BoardEditor = () => {
   return (
     <div className="board-editor-container">
       <div className={"board-editor-title" + (currentUserRole === 'viewer' ? ' board-editor-title--viewer' : '')}>
-        <h1>{board ? board.title : 'Tablero Desconocido'}</h1>
+  <h1>{board ? board.title : 'Tablero Desconocido'}</h1>
       </div>
+
+        {remoteChanges > 0 && (
+        <div style={{ padding: 8, margin: '0 0 8px 0', background: 'rgba(255,245,200,0.9)', border: '1px solid rgba(0,0,0,0.04)', borderRadius: 6 }}>
+          <span style={{ marginRight: 12 }}>Hay {remoteChanges} cambio(s) remotos. </span>
+          <button className="main-button main-button--small" onClick={async () => { await loadBoardAndColumns(); setRemoteChanges(0); }}>Aplicar cambios</button>
+        </div>
+      )}
+
+      {/* Loading UI removed: we render the board shell immediately to avoid visual flashes. */}
 
   <div className={"board-columns-container " + (columns && columns.length > 4 ? 'columns-scroll' : 'columns-fit')}>
         {currentUserRole === 'viewer' && viewerNoticeVisible && (
