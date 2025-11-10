@@ -84,16 +84,7 @@ class BoardMembership(models.Model):
 # Ensure board owner is always recorded as a membership with role=owner
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-
-
-@receiver(post_save, sender=Board)
-def ensure_owner_membership(sender, instance: Board, created: bool, **kwargs):
-    # Create or ensure owner membership exists for the board owner
-    BoardMembership.objects.get_or_create(
-        board=instance,
-        user=instance.user,
-        defaults={'role': BoardMembership.ROLE_OWNER},
-    )
+from django.utils import timezone
 
 
 #   Column
@@ -155,3 +146,100 @@ class CarouselImage(models.Model):
 
     def __str__(self):
         return self.title or f"CarouselImage #{self.pk}"
+
+
+# Signal handlers moved after model definitions to avoid NameError when importing models
+from django.db.models.signals import post_delete
+
+
+@receiver(post_save, sender=Board)
+def ensure_owner_membership(sender, instance: Board, created: bool, **kwargs):
+    # Create or ensure owner membership exists for the board owner
+    BoardMembership.objects.get_or_create(
+        board=instance,
+        user=instance.user,
+        defaults={'role': BoardMembership.ROLE_OWNER},
+    )
+
+
+@receiver(post_save, sender=Card)
+def card_post_save(sender, instance: Card, created: bool, **kwargs):
+    """Emit board socket event when a card is created or updated."""
+    payload = {
+        'event': 'card.created' if created else 'card.updated',
+        'data': {
+            'id': instance.id,
+            'column_id': instance.column_id,
+            'title': instance.title,
+            'description': instance.description,
+            'position': instance.position,
+            'is_completed': instance.is_completed,
+            'priority': instance.priority,
+            'timestamp': timezone.now().isoformat(),
+        }
+    }
+    try:
+        # send via channels if available; keep silent if channels not installed
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        channel_layer = get_channel_layer()
+        group = f'board_{instance.column.board_id}'
+        async_to_sync(channel_layer.group_send)(group, {'type': 'broadcast', 'payload': payload})
+    except Exception:
+        # No channels available or send failed: ignore for now
+        pass
+
+
+@receiver(post_save, sender=Column)
+def column_post_save(sender, instance: Column, created: bool, **kwargs):
+    """Emit board socket event when a column is created or updated."""
+    payload = {
+        'event': 'column.created' if created else 'column.updated',
+        'data': {
+            'id': instance.id,
+            'title': instance.title,
+            'position': instance.position,
+            'color': instance.color,
+            'timestamp': timezone.now().isoformat(),
+        }
+    }
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        channel_layer = get_channel_layer()
+        group = f'board_{instance.board_id}'
+        async_to_sync(channel_layer.group_send)(group, {'type': 'broadcast', 'payload': payload})
+    except Exception:
+        pass
+
+
+@receiver(post_delete, sender=Card)
+def card_post_delete(sender, instance: Card, **kwargs):
+    payload = {
+        'event': 'card.deleted',
+        'data': {'id': instance.id, 'column_id': instance.column_id, 'timestamp': timezone.now().isoformat()}
+    }
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        channel_layer = get_channel_layer()
+        group = f'board_{instance.column.board_id}'
+        async_to_sync(channel_layer.group_send)(group, {'type': 'broadcast', 'payload': payload})
+    except Exception:
+        pass
+
+
+@receiver(post_delete, sender=Column)
+def column_post_delete(sender, instance: Column, **kwargs):
+    payload = {
+        'event': 'column.deleted',
+        'data': {'id': instance.id, 'timestamp': timezone.now().isoformat()}
+    }
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        channel_layer = get_channel_layer()
+        group = f'board_{instance.board_id}'
+        async_to_sync(channel_layer.group_send)(group, {'type': 'broadcast', 'payload': payload})
+    except Exception:
+        pass

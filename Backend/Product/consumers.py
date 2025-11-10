@@ -70,3 +70,13 @@ class BoardChatConsumer(AsyncJsonWebsocketConsumer):
 
     async def chat_message(self, event):
         await self.send_json(event['message'])
+
+    async def broadcast(self, event):
+        """Generic broadcast handler used by server-side signals.
+
+        Expects event to contain a 'payload' dict. We forward it to client
+        as-is so frontend can route by payload['event'].
+        """
+        payload = event.get('payload') or event.get('message') or event
+        # send_json accepts dicts
+        await self.send_json(payload)
