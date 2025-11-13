@@ -398,6 +398,18 @@ button:disabled, .main-button:disabled {
 
 .auth-toggle-text {
   margin-top: 20px;
+
+/* Flash messages (toasts) */
+.flash-message { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-radius:8px; color: white; box-shadow: var(--shadow-card); }
+.flash-info { background: rgba(31,111,235,0.95); }
+.flash-success { background: rgba(5,150,105,0.95); }
+.flash-error { background: rgba(220,38,38,0.95); }
+.flash-text { flex:1; padding-right:8px; }
+.flash-close { background: transparent; border: none; color: rgba(255,255,255,0.9); font-size: 18px; cursor: pointer; }
+
+/* Sidebar logo */
+.sidebar-logo { width: 140px; height: auto; display: block; }
+.sidebar-title-text { margin-left: 8px; font-weight:700; color:white; }
   color: var(--color-accent-primary);
   cursor: pointer;
   text-decoration: underline;

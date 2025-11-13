@@ -3,10 +3,12 @@ import { useContext } from 'react';
 import { AuthContext } from '../context/AuthContext.jsx';
 import { createBoard as apiCreateBoard } from '../utils/boardApi';
 import { useNavigate } from 'react-router-dom'; 
+import { useFlash } from '../context/useFlash.js';
 
 export const CreateBoard = () => {
     const { token } = useContext(AuthContext);
     const navigate = useNavigate();
+    const { show } = useFlash();
 
     const [boardName, setBoardName] = useState('');
     const [columns, setColumns] = useState(['Por Hacer', 'En Progreso', 'Completado']); 
@@ -40,7 +42,7 @@ export const CreateBoard = () => {
         try {
             await apiCreateBoard(boardName.trim(), token, columns);
             setIsLoading(false);
-            alert(`Tablero "${boardName}" y ${columns.length} columnas creadas exitosamente!`);
+            show(`Tablero "${boardName}" y ${columns.length} columnas creadas exitosamente!`, 'success');
             navigate('/boards');
             return;
         } catch (err) {
