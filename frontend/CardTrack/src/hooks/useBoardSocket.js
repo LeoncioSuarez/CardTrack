@@ -17,6 +17,8 @@ export default function useBoardSocket(boardId, { onMessage, token } = {}) {
     if (!boardId) return;
     let closed = false;
 
+    let lastTimeout = null;
+
     const connect = () => {
       const url = buildWsUrl(boardId) + (token ? `?token=${encodeURIComponent(token)}` : '');
       const ws = new WebSocket(url);
@@ -40,7 +42,9 @@ export default function useBoardSocket(boardId, { onMessage, token } = {}) {
         // reconnect with backoff
         reconnectRef.current.attempts += 1;
         const t = Math.min(30000, 500 * reconnectRef.current.attempts);
-        reconnectRef.current.timeout = setTimeout(connect, t);
+        const to = setTimeout(connect, t);
+        reconnectRef.current.timeout = to;
+        lastTimeout = to;
       };
 
       ws.onerror = () => {
@@ -52,9 +56,11 @@ export default function useBoardSocket(boardId, { onMessage, token } = {}) {
 
     return () => {
       closed = true;
-      if (reconnectRef.current.timeout) clearTimeout(reconnectRef.current.timeout);
-      if (wsRef.current) {
-        try { wsRef.current.close(); } catch (e) { }
+      // clear the timeout we created inside this effect (if any)
+      if (lastTimeout) clearTimeout(lastTimeout);
+      const wsNow = wsRef.current;
+      if (wsNow) {
+        try { wsNow.close(); } catch (err) { void err; }
       }
     };
   }, [boardId, token, onMessage]);
@@ -65,7 +71,7 @@ export default function useBoardSocket(boardId, { onMessage, token } = {}) {
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
           wsRef.current.send(JSON.stringify(obj));
         }
-      } catch (e) { /* ignore */ }
+      } catch { /* ignore */ }
     },
   };
 }

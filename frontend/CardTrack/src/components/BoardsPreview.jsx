@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext.jsx';
+import { useFlash } from '../context/useFlash.js';
 import { useNavigate } from 'react-router-dom';
 import { fetchBoards } from '../utils/api';
 
@@ -11,6 +12,7 @@ const BoardsPreview = () => {
   const [error, setError] = useState(null);
 
   const navigate = useNavigate();
+  const { show } = useFlash();
 
   useEffect(() => {
     let mounted = true;
@@ -51,7 +53,7 @@ const BoardsPreview = () => {
         await (await import('../utils/boardApi')).deleteBoard(board.id, token);
         setBoards(prev => prev.filter(b => b.id !== board.id));
       } catch (e) {
-        alert(e.message);
+        show(e.message || 'Error al eliminar tablero', 'error');
       }
       return;
     }
@@ -62,7 +64,7 @@ const BoardsPreview = () => {
       await (await import('../utils/boardApi')).leaveBoard(board.id, token);
       setBoards(prev => prev.filter(b => b.id !== board.id));
     } catch (e) {
-      alert(e.message);
+      show(e.message || 'Error al abandonar tablero', 'error');
     }
   };
 

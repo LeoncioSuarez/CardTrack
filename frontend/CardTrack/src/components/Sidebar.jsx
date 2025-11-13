@@ -1,8 +1,9 @@
 import React from 'react';
+import logo from '../assets/logo.png';
 import { useAuth } from '../useAuth.js';
 import { useNavigate, useLocation } from 'react-router-dom';
 // development swich
-const DEVELOPMENT_SWITCH = true; //Change the value to true or false to allow development
+const DEVELOPMENT_SWITCH = false; //Change the value to true or false to allow development
 
 
 const menuItems = [
@@ -28,7 +29,9 @@ export const Sidebar = () => {
 
     return (
         <div className="sidebar-menu">
-            <div className="sidebar-title">CardTrack</div>
+            <div className="sidebar-title">
+                <img src={logo} alt="CardTrack" className="sidebar-logo" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+            </div>
             <ul className="sidebar-list">
                                 {menuItems.map((item) => {
                                         const isActive = item.path === '/boards'

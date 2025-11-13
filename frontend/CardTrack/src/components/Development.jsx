@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useFlash } from '../context/useFlash.js';
 import { useAuth } from '../useAuth.js';
 import Avatar from './Avatar';
 
@@ -15,6 +16,7 @@ const fetchJson = async (url, opts = {}) => {
 const Development = () => {
   const { token } = useAuth() || {};
   const [tab, setTab] = useState('releases');
+  const { show } = useFlash();
 
   // Releases state
   const [releases, setReleases] = useState([]);
@@ -276,7 +278,7 @@ const Development = () => {
                             try {
                               await updateUser(u.id, { name: editingUserValues.name, email: editingUserValues.email, password: editingUserValues.password, file: editingUserFile });
                               setEditingUserId(null); setEditingUserFile(null);
-                            } catch (err) { console.error(err); alert('Error al actualizar usuario'); }
+                            } catch (err) { console.error(err); show('Error al actualizar usuario', 'error'); }
                           }}>Guardar</button>
                           <button className="secondary-button main-button--small" onClick={() => { setEditingUserId(null); setEditingUserFile(null); }}>Cancelar</button>
                         </div>
